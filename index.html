@@ -277,7 +277,7 @@ select option{color:var(--text)}
 .preview-empty span{font-size:13px;color:var(--gray3)}
 
 /* 견적서 */
-#quoteDoc{background:#fff;width:100%;max-width:480px;min-height:300px;box-shadow:var(--shadow-lg);border-radius:8px;overflow:hidden;font-family:'Noto Sans KR',sans-serif;color:#111}
+#quoteDoc{background:#fff;width:100%;max-width:520px;min-height:300px;box-shadow:var(--shadow-lg);border-radius:8px;overflow:hidden;font-family:'Noto Sans KR',sans-serif;color:#111}
 .qh{background:linear-gradient(135deg,#1a2e2a,#243d38);padding:1.75rem 2.25rem 1.5rem;color:#fff}
 .qh-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem}
 .qtitle{font-size:28px;font-weight:900;letter-spacing:7px}
@@ -393,6 +393,9 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 input.qty-num::-webkit-inner-spin-button,
 input.qty-num::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 input.qty-num[type=number]{-moz-appearance:textfield}
+
+.qtbl td.num, .qtbl td.tax { padding-right: 2px !important; }
+.qtbl th:last-child, .qtbl td:last-child { padding-right: 3px !important; }
 </style>
 </head>
 <body>
@@ -928,9 +931,15 @@ document.getElementById('iDiscAmt').addEventListener('input',function(){calcDisc
 // 견적서 생성
 document.getElementById('genBtn').addEventListener('click',function(){
   var warn=document.getElementById('genWarn');
+  var customer=document.getElementById('iCustomer').value.trim();
+  if(!customer){
+    warn.style.display='block';
+    warn.textContent='고객명 / 업체명을 입력해주세요';
+    document.getElementById('iCustomer').focus();
+    return;
+  }
   if(items.length===0){warn.style.display='block';warn.textContent='품목을 최소 1개 이상 추가해주세요';return;}
   warn.style.display='none';
-  var customer=document.getElementById('iCustomer').value||'귀하';
   var dateVal=document.getElementById('iDate').value;
   var dateStr=dateVal?(function(){var p=dateVal.split('-');return p[0]+'년 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일';})():'';
   var disc=parseInt(document.getElementById('iDiscount').value)||0;
@@ -980,8 +989,8 @@ document.getElementById('genBtn').addEventListener('click',function(){
     '<div class="qbody">'+
       '<p class="qgreeting">아래와 같이 견적합니다.</p>'+
       '<table class="qtbl">'+
-        '<thead><tr><th style="width:15%">품명</th><th style="width:33%">규격</th><th style="width:7%">수량</th>'+
-        '<th style="width:14%;text-align:right">단가</th><th style="width:16%;text-align:right">공급가</th><th style="width:15%;text-align:right">세액</th></tr></thead>'+
+        '<thead><tr><th style="width:14%">품명</th><th style="width:30%">규격</th><th style="width:6%">수량</th>'+
+        '<th style="width:16%;text-align:right">단가</th><th style="width:17%;text-align:right">공급가</th><th style="width:17%;text-align:right">세액</th></tr></thead>'+
         '<tbody>'+itemRows+optRows+subRow+discRow+
           '<tr class="fin-row"><td colspan="4" style="text-align:center">최종 합계 (VAT 포함)</td>'+
           '<td class="num">'+fmt(fSup)+'</td><td class="num">'+fmt(fTax)+'</td></tr>'+
