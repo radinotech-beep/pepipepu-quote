@@ -114,12 +114,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#eef3f2;color:var(--text);
     justify-content:flex-start;
     align-items:flex-start;
   }
-  #quoteDoc{
-    width:794px!important;
-    flex-shrink:0;
-    font-size:11px;
-    transform-origin:top left;
-  }
+  #quoteDoc{width:100%!important;max-width:480px!important;}
   .qh-top{flex-direction:column;gap:.75rem}
   .qco{font-size:9.5px;min-width:unset;width:100%}
   .qmeta{flex-direction:column;gap:.5rem;align-items:flex-start}
@@ -282,7 +277,7 @@ select option{color:var(--text)}
 .preview-empty span{font-size:13px;color:var(--gray3)}
 
 /* 견적서 */
-#quoteDoc{background:#fff;width:794px;min-height:600px;box-shadow:var(--shadow-lg);border-radius:4px;overflow:hidden;font-family:'Noto Sans KR',sans-serif;color:#111}
+#quoteDoc{background:#fff;width:100%;max-width:480px;min-height:300px;box-shadow:var(--shadow-lg);border-radius:8px;overflow:hidden;font-family:'Noto Sans KR',sans-serif;color:#111}
 .qh{background:linear-gradient(135deg,#1a2e2a,#243d38);padding:1.75rem 2.25rem 1.5rem;color:#fff}
 .qh-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem}
 .qtitle{font-size:28px;font-weight:900;letter-spacing:7px}
@@ -804,7 +799,7 @@ function updateOptSel(){
   OPTIONS.filter(function(o){return !cat||o.cat===cat;}).forEach(function(o,_,arr){
     var idx=OPTIONS.indexOf(o);
     var op=document.createElement('option');
-    op.value=idx; op.textContent=o.name+' (₩'+fmt(o.price)+')';
+    op.value=idx; op.textContent=o.name+' ('+fmt(o.price)+')';
     sel.appendChild(op);
   });
 }
@@ -979,14 +974,14 @@ document.getElementById('genBtn').addEventListener('click',function(){
       '</div>'+
       '<div class="qmeta">'+
         '<div><div class="qdate">발행일  '+dateStr+'</div><div class="qcustomer">'+customer+' 귀하</div></div>'+
-        '<div class="qtb"><div class="tl">합계금액 (VAT 포함)</div><div class="tv">₩'+fmt(final)+'</div></div>'+
+        '<div class="qtb"><div class="tl">합계금액 (VAT 포함)</div><div class="tv">'+fmt(final)+'</div></div>'+
       '</div>'+
     '</div>'+
     '<div class="qbody">'+
       '<p class="qgreeting">아래와 같이 견적합니다.</p>'+
       '<table class="qtbl">'+
-        '<thead><tr><th style="width:22%">품명</th><th style="width:25%">규격</th><th style="width:7%">수량</th>'+
-        '<th style="width:13%;text-align:right">단가</th><th style="width:17%;text-align:right">공급가액</th><th style="width:16%;text-align:right">세액</th></tr></thead>'+
+        '<thead><tr><th style="width:22%">품명</th><th style="width:26%">규격</th><th style="width:7%">수량</th>'+
+        '<th style="width:14%;text-align:right">단가</th><th style="width:16%;text-align:right">공급가</th><th style="width:15%;text-align:right">세액</th></tr></thead>'+
         '<tbody>'+itemRows+optRows+subRow+discRow+
           '<tr class="fin-row"><td colspan="4" style="text-align:center">최종 합계 (VAT 포함)</td>'+
           '<td class="num">'+fmt(fSup)+'</td><td class="num">'+fmt(fTax)+'</td></tr>'+
@@ -1000,11 +995,7 @@ document.getElementById('genBtn').addEventListener('click',function(){
   '</div>';
 
   document.getElementById('previewWrap').innerHTML='<div class="preview-scroll">'+docHtml+'</div>';
-  setTimeout(function(){
-    scaleQuoteDoc();
-    var pw=document.getElementById('previewWrap');
-    if(pw) pw.scrollIntoView({behavior:'smooth',block:'start'});
-  },100);
+  setTimeout(function(){var pw=document.getElementById('previewWrap');if(pw) pw.scrollIntoView({behavior:'smooth',block:'start'});},100);
 });
 
 
@@ -1169,27 +1160,7 @@ document.getElementById('btnPng').addEventListener('click', function(){
 });
 
 
-function scaleQuoteDoc(){
-  var doc = document.getElementById('quoteDoc');
-  if(!doc) return;
-  var wrap = document.getElementById('previewWrap');
-  if(!wrap) return;
-  var wrapW = wrap.clientWidth - 16; // 여백
-  var docW = 794;
-  if(wrapW < docW){
-    var scale = wrapW / docW;
-    doc.style.transform = 'scale(' + scale + ')';
-    doc.style.transformOrigin = 'top left';
-    doc.style.marginBottom = '-' + Math.round(doc.offsetHeight * (1 - scale)) + 'px';
-    wrap.style.overflowX = 'hidden';
-  } else {
-    doc.style.transform = '';
-    doc.style.transformOrigin = '';
-    doc.style.marginBottom = '';
-    wrap.style.overflowX = 'auto';
-  }
-}
-window.addEventListener('resize', scaleQuoteDoc);
+
 
 // 초기 뱃지
 updateBadge();
