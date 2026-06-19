@@ -401,8 +401,22 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 .visual-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:.75rem}
 .visual-title{font-size:14px;font-weight:800;color:var(--text)}
 .visual-meta{font-size:12px;color:var(--text2);white-space:nowrap}
-.visual-stage{position:relative;height:360px;border:1px solid var(--mint-md);border-radius:12px;background:linear-gradient(180deg,#ffffff 0%,#eef6f4 100%);overflow:hidden}
+.visual-stage{position:relative;min-height:360px;border:1px solid var(--mint-md);border-radius:12px;background:linear-gradient(180deg,#ffffff 0%,#eef6f4 100%);overflow:hidden}
 #angleVisualCanvas{width:100%;height:100%;display:block}
+.layout-visual{min-height:360px;padding:18px;background:linear-gradient(145deg,#f5f2ee 0%,#fff 52%,#ebe8e3 100%);display:none}
+.layout-sheet{max-width:980px;margin:0 auto;color:#262626}
+.layout-badge{display:inline-block;background:#333;color:#fff;border-radius:7px;padding:6px 10px;font-size:13px;font-weight:800;margin-bottom:10px}
+.layout-note{float:right;background:#2c2c2c;color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:800}
+.layout-total{clear:both;font-size:22px;font-weight:900;margin:8px 0 3px}
+.layout-spec{font-size:15px;font-weight:700;color:#333;margin-bottom:12px}
+.layout-caption{display:inline-block;background:#333;color:#fff;border-radius:6px;padding:6px 10px;font-size:13px;font-weight:800;margin-bottom:8px}
+.layout-svg-wrap{width:100%;overflow:hidden}
+.layout-svg{width:100%;height:auto;display:block}
+.layout-line{stroke:#202020;stroke-width:3;stroke-linecap:round}
+.layout-dim{stroke:#202020;stroke-width:1.4;marker-start:url(#arrow);marker-end:url(#arrow)}
+.layout-text{fill:#222;font-family:'Noto Sans KR',sans-serif;font-weight:800}
+.layout-small{fill:#333;font-family:'Noto Sans KR',sans-serif;font-weight:700}
+.layout-floor{fill:#dad6cf}
 .visual-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--text2);padding:24px;pointer-events:none}
 .visual-empty strong{display:block;font-size:15px;color:var(--text);margin-bottom:6px}
 .visual-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:.75rem}
@@ -413,7 +427,11 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 @media(max-width:768px){
   .visual-panel{padding:.75rem}
   .visual-head{align-items:flex-start;flex-direction:column;gap:3px}
-  .visual-stage{height:280px}
+  .visual-stage{min-height:280px}
+  .layout-visual{min-height:280px;padding:12px}
+  .layout-note{float:none;display:block;width:max-content;max-width:100%;margin-bottom:8px}
+  .layout-total{font-size:18px}
+  .layout-spec{font-size:12px}
   .visual-meta{white-space:normal}
 }
 </style>
@@ -594,18 +612,19 @@ input.qty-num[type=number]{-moz-appearance:textfield}
       </button>
     </div>
   </div>
-  <section class="visual-panel" aria-label="앵글선반 3D 미리보기">
+  <section class="visual-panel" aria-label="앵글선반 정면 배치도">
     <div class="visual-head">
       <div>
-        <div class="visual-title">앵글선반 3D 미리보기</div>
-        <div class="visual-meta" id="visualMeta">품목을 추가하면 실제 비율에 맞춰 자동으로 조립됩니다</div>
+        <div class="visual-title">앵글선반 정면 배치도</div>
+        <div class="visual-meta" id="visualMeta">품목을 추가하면 총장과 유닛별 가로가 자동 표시됩니다</div>
       </div>
-      <div class="visual-meta">마우스/터치로 회전 · 확대</div>
+      <div class="visual-meta">견적서 이미지에 함께 삽입</div>
     </div>
     <div class="visual-stage" id="angleVisualStage">
+      <div class="layout-visual" id="layoutVisual"></div>
       <canvas id="angleVisualCanvas"></canvas>
       <div class="visual-empty" id="visualEmpty">
-        <div><strong>아직 렌더링할 선반이 없습니다</strong><span>가로, 깊이, 높이, 단수를 선택하고 품목을 추가해주세요.</span></div>
+        <div><strong>아직 표시할 선반이 없습니다</strong><span>가로, 깊이, 높이, 단수를 선택하고 품목을 추가해주세요.</span></div>
       </div>
     </div>
     <div class="visual-legend" id="visualLegend"></div>
@@ -987,7 +1006,7 @@ document.getElementById('genBtn').addEventListener('click',function(){
   var tTax=items.reduce(function(a,it){return a+tx(it.vatPer)*it.qty;},0)+optionItems.reduce(function(a,o){return a+tx(o.price)*o.qty;},0);
   var discPct=disc>0?(disc/sub*100).toFixed(1)+'%':'';
   var visualPng=window.getAngleVisualizerImage?window.getAngleVisualizerImage():'';
-  var visualBlock=visualPng?'<div class="quote-visual"><div class="quote-visual-title">제품 3D 미리보기</div><img src="'+visualPng+'" alt="앵글선반 3D 미리보기"></div>':'';
+  var visualBlock=visualPng?'<div class="quote-visual"><div class="quote-visual-title">앵글선반 정면 배치도</div><img src="'+visualPng+'" alt="앵글선반 정면 배치도"></div>':'';
 
   var itemRows=items.map(function(it){
     var sp=sup(it.vatPer),t=tx(it.vatPer);
@@ -1351,6 +1370,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 var stage=document.getElementById('angleVisualStage');
 var canvas=document.getElementById('angleVisualCanvas');
+var layoutVisual=document.getElementById('layoutVisual');
 var empty=document.getElementById('visualEmpty');
 var meta=document.getElementById('visualMeta');
 var legend=document.getElementById('visualLegend');
@@ -1453,6 +1473,73 @@ function addRack(item,index,total){
   racks.add(group);
 }
 
+function expandUnits(list){
+  var units=[];
+  (list||[]).forEach(function(it){
+    var qty=Math.max(1,Number(it.qty)||1);
+    for(var i=0;i<qty;i++) units.push(it);
+  });
+  return units.slice(0,12);
+}
+function summarizeUnits(units){
+  var map={};
+  units.forEach(function(u){
+    var key='W'+u.w;
+    map[key]=(map[key]||0)+1;
+  });
+  return Object.keys(map).sort(function(a,b){return parseInt(a.slice(1))-parseInt(b.slice(1));}).map(function(k){
+    return k+'×'+map[k]+'개';
+  }).join(' + ');
+}
+function buildLayoutSvg(list){
+  var units=expandUnits(list);
+  if(!units.length) return {html:'',png:''};
+  var totalW=units.reduce(function(a,u){return a+Number(u.w||0);},0);
+  var maxH=units.reduce(function(a,u){return Math.max(a,Number(u.h||0));},0);
+  var maxTier=units.reduce(function(a,u){return Math.max(a,Number(u.tier||0));},0);
+  var depth=units[0].d||'';
+  var color=units[0].color||'';
+  var black=String(color).indexOf('랙')>-1 || String(color).toLowerCase().indexOf('black')>-1;
+  var frame=black?'#191d1f':'#d9dedc';
+  var shelf=black?'#24282b':'#eef1ef';
+  var hole=black?'#596066':'#a7b2ae';
+  var side=54, top=92, rackH=210, baseY=top+rackH, scale=(920-side*2)/Math.max(totalW,1);
+  var x=side;
+  var parts=[];
+  parts.push('<svg class="layout-svg" viewBox="0 0 1000 390" xmlns="http://www.w3.org/2000/svg">');
+  parts.push('<style>.layout-dim{stroke:#202020;stroke-width:1.4;marker-start:url(#arrow);marker-end:url(#arrow)}.layout-text{fill:#222;font-family:Noto Sans KR,Arial,sans-serif;font-weight:800}.layout-small{fill:#333;font-family:Noto Sans KR,Arial,sans-serif;font-weight:700}.layout-floor{fill:#dad6cf}</style>');
+  parts.push('<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#202020"/></marker><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity=".22"/></filter></defs>');
+  parts.push('<rect x="0" y="0" width="1000" height="390" rx="18" fill="url(#bg)"/><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f4f1ed"/><stop offset=".55" stop-color="#fff"/><stop offset="1" stop-color="#e7e2dc"/></linearGradient>');
+  parts.push('<line x1="'+side+'" y1="55" x2="'+(1000-side)+'" y2="55" class="layout-dim"/><text x="500" y="47" font-size="20" text-anchor="middle" class="layout-text">'+totalW+'mm</text>');
+  units.forEach(function(u,idx){
+    var uw=Math.max(Number(u.w||0)*scale,42);
+    var tier=Math.max(2,Number(u.tier)||2);
+    var postW=10;
+    parts.push('<g filter="url(#shadow)">');
+    parts.push('<rect x="'+x+'" y="'+top+'" width="'+postW+'" height="'+rackH+'" fill="'+frame+'"/><rect x="'+(x+uw-postW)+'" y="'+top+'" width="'+postW+'" height="'+rackH+'" fill="'+frame+'"/>');
+    for(var h=0;h<16;h++){
+      parts.push('<circle cx="'+(x+postW/2)+'" cy="'+(top+12+h*12)+'" r="1.6" fill="'+hole+'"/><circle cx="'+(x+uw-postW/2)+'" cy="'+(top+12+h*12)+'" r="1.6" fill="'+hole+'"/>');
+    }
+    for(var t=0;t<tier;t++){
+      var y=baseY-(rackH-18)*(t/(tier-1))-12;
+      parts.push('<rect x="'+x+'" y="'+y+'" width="'+uw+'" height="13" rx="2" fill="'+shelf+'"/><rect x="'+x+'" y="'+(y+11)+'" width="'+uw+'" height="8" rx="1" fill="'+frame+'"/>');
+    }
+    parts.push('<rect x="'+x+'" y="'+top+'" width="'+uw+'" height="8" fill="'+frame+'"/><rect x="'+x+'" y="'+(baseY-8)+'" width="'+uw+'" height="8" fill="'+frame+'"/>');
+    parts.push('</g>');
+    parts.push('<text x="'+(x+uw/2)+'" y="82" font-size="14" text-anchor="middle" class="layout-small">'+u.w+'mm</text>');
+    if(idx<units.length-1) parts.push('<line x1="'+(x+uw)+'" y1="'+top+'" x2="'+(x+uw)+'" y2="'+baseY+'" stroke="#111" stroke-width="2" opacity=".45"/>');
+    x+=uw;
+  });
+  parts.push('<rect x="0" y="'+(baseY+18)+'" width="1000" height="30" class="layout-floor"/>');
+  parts.push('<text x="500" y="360" font-size="15" text-anchor="middle" class="layout-small">D'+depth+' · H'+maxH+' · '+maxTier+'단 · '+color+'</text>');
+  parts.push('</svg>');
+  var svg=parts.join('');
+  var spec=summarizeUnits(units)+' · D'+depth+' · H'+maxH+' · '+maxTier+'단';
+  var html='<div class="layout-sheet"><span class="layout-badge">타입 ①</span><span class="layout-note">참고 : 가로 최소 400~최대 1200 / 정100미리 단위 제작 가능</span><div class="layout-total">총장 '+totalW+'mm</div><div class="layout-spec">'+spec+'</div><div class="layout-caption">유닛별 가로 사이즈</div><div class="layout-svg-wrap">'+svg+'</div></div>';
+  var png='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  return {html:html,png:png,totalW:totalW,spec:spec};
+}
+
 function resize(){
   if(!stage) return;
   var rect=stage.getBoundingClientRect();
@@ -1466,8 +1553,12 @@ function resize(){
 window.renderAngleVisualizer=function(list){
   while(racks.children.length) racks.remove(racks.children[0]);
   var rackItems=(list||[]).filter(Boolean).slice(0,4);
+  var layout=buildLayoutSvg(list);
+  layoutVisual.innerHTML=layout.html;
+  layoutVisual.style.display=rackItems.length?'block':'none';
+  canvas.style.display='none';
   empty.style.display=rackItems.length?'none':'grid';
-  meta.textContent=rackItems.length?rackItems.length+'개 품목을 3D로 표시 중입니다':'품목을 추가하면 실제 비율에 맞춰 자동으로 조립됩니다';
+  meta.textContent=rackItems.length?'총장 '+layout.totalW+'mm 정면 배치도를 표시 중입니다':'품목을 추가하면 실제 비율에 맞춰 자동으로 조립됩니다';
   legend.innerHTML=rackItems.map(function(it){
     return '<span class="visual-chip">W'+it.w+' × D'+it.d+' × H'+it.h+' · '+it.tier+'단 · '+it.color+'</span>';
   }).join('');
@@ -1479,9 +1570,8 @@ window.renderAngleVisualizer=function(list){
 };
 
 window.getAngleVisualizerImage=function(){
-  if(!racks.children.length) return '';
-  renderer.render(scene,camera);
-  return canvas.toDataURL('image/png');
+  var layout=buildLayoutSvg(window.items||items||[]);
+  return layout.png||'';
 };
 
 function animate(){
