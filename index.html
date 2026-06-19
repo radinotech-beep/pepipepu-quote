@@ -396,6 +396,26 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 
 .qtbl td.num, .qtbl td.tax { padding-right: 2px !important; }
 .qtbl th:last-child, .qtbl td:last-child { padding-right: 3px !important; }
+
+.visual-panel{background:#f8fbfa;border-bottom:1px solid var(--mint-md);padding:1rem 1.25rem}
+.visual-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:.75rem}
+.visual-title{font-size:14px;font-weight:800;color:var(--text)}
+.visual-meta{font-size:12px;color:var(--text2);white-space:nowrap}
+.visual-stage{position:relative;height:360px;border:1px solid var(--mint-md);border-radius:12px;background:linear-gradient(180deg,#ffffff 0%,#eef6f4 100%);overflow:hidden}
+#angleVisualCanvas{width:100%;height:100%;display:block}
+.visual-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--text2);padding:24px;pointer-events:none}
+.visual-empty strong{display:block;font-size:15px;color:var(--text);margin-bottom:6px}
+.visual-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:.75rem}
+.visual-chip{font-size:11px;font-weight:700;color:var(--text2);background:#fff;border:1px solid var(--gray2);border-radius:99px;padding:5px 8px}
+.quote-visual{margin:0 0 12px;border:1px solid #d7e5e1;border-radius:10px;background:#f8fbfa;padding:10px}
+.quote-visual-title{font-size:12px;font-weight:800;color:#1a7060;margin-bottom:8px}
+.quote-visual img{display:block;width:100%;max-height:260px;object-fit:contain;background:#fff;border-radius:8px}
+@media(max-width:768px){
+  .visual-panel{padding:.75rem}
+  .visual-head{align-items:flex-start;flex-direction:column;gap:3px}
+  .visual-stage{height:280px}
+  .visual-meta{white-space:normal}
+}
 </style>
 </head>
 <body>
@@ -574,6 +594,22 @@ input.qty-num[type=number]{-moz-appearance:textfield}
       </button>
     </div>
   </div>
+  <section class="visual-panel" aria-label="앵글선반 3D 미리보기">
+    <div class="visual-head">
+      <div>
+        <div class="visual-title">앵글선반 3D 미리보기</div>
+        <div class="visual-meta" id="visualMeta">품목을 추가하면 실제 비율에 맞춰 자동으로 조립됩니다</div>
+      </div>
+      <div class="visual-meta">마우스/터치로 회전 · 확대</div>
+    </div>
+    <div class="visual-stage" id="angleVisualStage">
+      <canvas id="angleVisualCanvas"></canvas>
+      <div class="visual-empty" id="visualEmpty">
+        <div><strong>아직 렌더링할 선반이 없습니다</strong><span>가로, 깊이, 높이, 단수를 선택하고 품목을 추가해주세요.</span></div>
+      </div>
+    </div>
+    <div class="visual-legend" id="visualLegend"></div>
+  </section>
   <div class="preview-wrap" id="previewWrap"><div class="preview-scroll" id="previewScroll">
     <div class="preview-empty">
       <svg viewBox="0 0 64 64"><rect x="12" y="8" width="40" height="48" rx="3"/><line x1="20" y1="20" x2="44" y2="20"/><line x1="20" y1="28" x2="44" y2="28"/><line x1="20" y1="36" x2="36" y2="36"/></svg>
@@ -879,6 +915,7 @@ function updateBanner(){
     var rate=(disc/sub*100).toFixed(1);
     rateEl.textContent=rate+'% 할인';
   }else{rateEl.textContent='';}
+  if(window.renderAngleVisualizer) window.renderAngleVisualizer(items);
 }
 
 var discMode = 'pct'; // 'pct' | 'amt'
@@ -949,6 +986,8 @@ document.getElementById('genBtn').addEventListener('click',function(){
   var tSup=items.reduce(function(a,it){return a+sup(it.vatPer)*it.qty;},0)+optionItems.reduce(function(a,o){return a+sup(o.price)*o.qty;},0);
   var tTax=items.reduce(function(a,it){return a+tx(it.vatPer)*it.qty;},0)+optionItems.reduce(function(a,o){return a+tx(o.price)*o.qty;},0);
   var discPct=disc>0?(disc/sub*100).toFixed(1)+'%':'';
+  var visualPng=window.getAngleVisualizerImage?window.getAngleVisualizerImage():'';
+  var visualBlock=visualPng?'<div class="quote-visual"><div class="quote-visual-title">제품 3D 미리보기</div><img src="'+visualPng+'" alt="앵글선반 3D 미리보기"></div>':'';
 
   var itemRows=items.map(function(it){
     var sp=sup(it.vatPer),t=tx(it.vatPer);
@@ -988,6 +1027,7 @@ document.getElementById('genBtn').addEventListener('click',function(){
     '</div>'+
     '<div class="qbody">'+
       '<p class="qgreeting">아래와 같이 견적합니다.</p>'+
+      visualBlock+
       '<table class="qtbl">'+
         '<thead><tr><th style="width:14%">품명</th><th style="width:30%">규격</th><th style="width:6%">수량</th>'+
         '<th style="width:16%;text-align:right">단가</th><th style="width:17%;text-align:right">공급가</th><th style="width:17%;text-align:right">세액</th></tr></thead>'+
@@ -1296,6 +1336,155 @@ document.getElementById('btnExcel').addEventListener('click', function(){
   URL.revokeObjectURL(url);
   showToast('엑셀 파일 다운로드됐어요!','success');
 });
+</script>
+<script type="module">
+import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
+import { OrbitControls } from 'https://unpkg.com/three@0.165.0/examples/jsm/controls/OrbitControls.js';
+
+var stage=document.getElementById('angleVisualStage');
+var canvas=document.getElementById('angleVisualCanvas');
+var empty=document.getElementById('visualEmpty');
+var meta=document.getElementById('visualMeta');
+var legend=document.getElementById('visualLegend');
+var scene=new THREE.Scene();
+scene.background=new THREE.Color(0xf8fbfa);
+
+var camera=new THREE.PerspectiveCamera(38,1,0.1,100);
+camera.position.set(4.2,3.2,5.8);
+
+var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+var controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;
+controls.dampingFactor=.08;
+controls.minDistance=2.8;
+controls.maxDistance=11;
+controls.target.set(0,.9,0);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x8aa09a,2.4));
+var key=new THREE.DirectionalLight(0xffffff,2.7);
+key.position.set(3.5,6,4.5);
+key.castShadow=true;
+key.shadow.mapSize.set(1024,1024);
+scene.add(key);
+
+var floor=new THREE.Mesh(
+  new THREE.PlaneGeometry(20,20),
+  new THREE.ShadowMaterial({color:0x7a918c,opacity:.18})
+);
+floor.rotation.x=-Math.PI/2;
+floor.position.y=-.02;
+floor.receiveShadow=true;
+scene.add(floor);
+
+var racks=new THREE.Group();
+scene.add(racks);
+
+function mm(v){return Number(v||0)/1000;}
+function matFor(color){
+  var isBlack=String(color||'').indexOf('랙')>-1 || String(color||'').toLowerCase().indexOf('black')>-1;
+  return {
+    frame:new THREE.MeshStandardMaterial({color:isBlack?0x18222b:0xe8eeee,roughness:.43,metalness:.35}),
+    edge:new THREE.MeshStandardMaterial({color:isBlack?0x0f151b:0xcfd8d5,roughness:.36,metalness:.45}),
+    shelf:new THREE.MeshStandardMaterial({color:isBlack?0x222b34:0xf7f8f6,roughness:.58,metalness:.12})
+  };
+}
+function box(w,h,d,mat,x,y,z){
+  var m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+  m.position.set(x,y,z);
+  m.castShadow=true;
+  m.receiveShadow=true;
+  return m;
+}
+function addRack(item,index,total){
+  var w=Math.max(mm(item.w),.2);
+  var d=Math.max(mm(item.d),.2);
+  var h=Math.max(mm(item.h),.3);
+  var tier=Math.max(2,Number(item.tier)||2);
+  var mats=matFor(item.color);
+  var group=new THREE.Group();
+  var post=.045, rail=.04, shelf=.042;
+  var x0=w/2-post/2, z0=d/2-post/2;
+  var spacing=(Math.max(w,d)+.42);
+  group.position.x=(index-(total-1)/2)*spacing;
+
+  [[-x0,-z0],[x0,-z0],[-x0,z0],[x0,z0]].forEach(function(p){
+    group.add(box(post,h,post,mats.frame,p[0],h/2,p[1]));
+  });
+  for(var i=0;i<tier;i++){
+    var y=tier===1?shelf/2:i*(h-shelf)/(tier-1)+shelf/2;
+    group.add(box(w,shelf,d,mats.shelf,0,y,0));
+    group.add(box(w,rail,rail,mats.edge,0,y+rail*.7,-d/2));
+    group.add(box(w,rail,rail,mats.edge,0,y+rail*.7,d/2));
+    group.add(box(rail,rail,d,mats.edge,-w/2,y+rail*.7,0));
+    group.add(box(rail,rail,d,mats.edge,w/2,y+rail*.7,0));
+  }
+  var braceMat=new THREE.MeshStandardMaterial({color:String(item.color||'').indexOf('랙')>-1?0x26313b:0xdde5e2,roughness:.4,metalness:.4});
+  var diagLen=Math.sqrt(w*w+h*h);
+  [-d/2-post,d/2+post].forEach(function(z){
+    var b=box(.026,diagLen,.026,braceMat,0,h/2,z);
+    b.rotation.z=Math.atan2(w,h);
+    group.add(b);
+  });
+  var label=document.createElement('canvas');
+  label.width=512; label.height=128;
+  var ctx=label.getContext('2d');
+  ctx.fillStyle='rgba(255,255,255,.92)'; ctx.fillRect(0,0,512,128);
+  ctx.fillStyle='#1a2e2a'; ctx.font='700 34px Noto Sans KR, sans-serif';
+  ctx.fillText('W'+item.w+' D'+item.d+' H'+item.h,24,48);
+  ctx.fillStyle='#1a9080'; ctx.font='700 28px Noto Sans KR, sans-serif';
+  ctx.fillText(item.tier+'단 x '+item.qty+'대',24,88);
+  var tex=new THREE.CanvasTexture(label);
+  var sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
+  sprite.scale.set(1.25,.32,1);
+  sprite.position.set(0,h+.18,0);
+  group.add(sprite);
+  racks.add(group);
+}
+
+function resize(){
+  if(!stage) return;
+  var rect=stage.getBoundingClientRect();
+  var width=Math.max(320,Math.floor(rect.width));
+  var height=Math.max(240,Math.floor(rect.height));
+  renderer.setSize(width,height,false);
+  camera.aspect=width/height;
+  camera.updateProjectionMatrix();
+}
+
+window.renderAngleVisualizer=function(list){
+  while(racks.children.length) racks.remove(racks.children[0]);
+  var rackItems=(list||[]).filter(Boolean).slice(0,4);
+  empty.style.display=rackItems.length?'none':'grid';
+  meta.textContent=rackItems.length?rackItems.length+'개 품목을 3D로 표시 중입니다':'품목을 추가하면 실제 비율에 맞춰 자동으로 조립됩니다';
+  legend.innerHTML=rackItems.map(function(it){
+    return '<span class="visual-chip">W'+it.w+' × D'+it.d+' × H'+it.h+' · '+it.tier+'단 · '+it.color+'</span>';
+  }).join('');
+  rackItems.forEach(function(it,i){addRack(it,i,rackItems.length);});
+  var maxH=rackItems.reduce(function(a,it){return Math.max(a,mm(it.h));},1.8);
+  controls.target.set(0,Math.min(maxH*.48,1.2),0);
+  controls.update();
+  resize();
+};
+
+window.getAngleVisualizerImage=function(){
+  if(!racks.children.length) return '';
+  renderer.render(scene,camera);
+  return canvas.toDataURL('image/png');
+};
+
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene,camera);
+}
+window.addEventListener('resize',resize);
+resize();
+window.renderAngleVisualizer(window.items||[]);
+animate();
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js');});}</script>
 </body>
