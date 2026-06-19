@@ -401,37 +401,20 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 .visual-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:.75rem}
 .visual-title{font-size:14px;font-weight:800;color:var(--text)}
 .visual-meta{font-size:12px;color:var(--text2);white-space:nowrap}
-.visual-stage{position:relative;min-height:360px;border:1px solid var(--mint-md);border-radius:12px;background:linear-gradient(180deg,#ffffff 0%,#eef6f4 100%);overflow:hidden}
-#angleVisualCanvas{width:100%;height:100%;display:block}
-.layout-visual{min-height:360px;padding:18px;background:linear-gradient(145deg,#f5f2ee 0%,#fff 52%,#ebe8e3 100%);display:none}
-.layout-sheet{max-width:980px;margin:0 auto;color:#262626}
-.layout-badge{display:inline-block;background:#333;color:#fff;border-radius:7px;padding:6px 10px;font-size:13px;font-weight:800;margin-bottom:10px}
-.layout-note{float:right;background:#2c2c2c;color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:800}
-.layout-total{clear:both;font-size:22px;font-weight:900;margin:8px 0 3px}
-.layout-spec{font-size:15px;font-weight:700;color:#333;margin-bottom:12px}
-.layout-caption{display:inline-block;background:#333;color:#fff;border-radius:6px;padding:6px 10px;font-size:13px;font-weight:800;margin-bottom:8px}
-.layout-svg-wrap{width:100%;overflow:hidden}
-.layout-svg{width:100%;height:auto;display:block}
-.layout-line{stroke:#202020;stroke-width:3;stroke-linecap:round}
-.layout-dim{stroke:#202020;stroke-width:1.4;marker-start:url(#arrow);marker-end:url(#arrow)}
-.layout-text{fill:#222;font-family:'Noto Sans KR',sans-serif;font-weight:800}
-.layout-small{fill:#333;font-family:'Noto Sans KR',sans-serif;font-weight:700}
-.layout-floor{fill:#dad6cf}
-.visual-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--text2);padding:24px;pointer-events:none}
+.visual-stage{position:relative;min-height:420px;border:1px solid var(--mint-md);border-radius:12px;background:#f2f0ec;overflow:hidden}
+.layout-visual{width:100%;min-height:420px;background:#f2f0ec}
+.visual-empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--text2);padding:24px;pointer-events:none;background:#f8fbfa}
 .visual-empty strong{display:block;font-size:15px;color:var(--text);margin-bottom:6px}
 .visual-legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:.75rem}
 .visual-chip{font-size:11px;font-weight:700;color:var(--text2);background:#fff;border:1px solid var(--gray2);border-radius:99px;padding:5px 8px}
 .quote-visual{margin:0 0 12px;border:1px solid #d7e5e1;border-radius:10px;background:#f8fbfa;padding:10px}
 .quote-visual-title{font-size:12px;font-weight:800;color:#1a7060;margin-bottom:8px}
-.quote-visual img{display:block;width:100%;max-height:260px;object-fit:contain;background:#fff;border-radius:8px}
+.quote-visual img{display:block;width:100%;max-height:300px;object-fit:contain;background:#f2f0ec;border-radius:8px}
 @media(max-width:768px){
   .visual-panel{padding:.75rem}
   .visual-head{align-items:flex-start;flex-direction:column;gap:3px}
-  .visual-stage{min-height:280px}
-  .layout-visual{min-height:280px;padding:12px}
-  .layout-note{float:none;display:block;width:max-content;max-width:100%;margin-bottom:8px}
-  .layout-total{font-size:18px}
-  .layout-spec{font-size:12px}
+  .visual-stage{min-height:340px}
+  .layout-visual{min-height:340px}
   .visual-meta{white-space:normal}
 }
 </style>
@@ -622,7 +605,6 @@ input.qty-num[type=number]{-moz-appearance:textfield}
     </div>
     <div class="visual-stage" id="angleVisualStage">
       <div class="layout-visual" id="layoutVisual"></div>
-      <canvas id="angleVisualCanvas"></canvas>
       <div class="visual-empty" id="visualEmpty">
         <div><strong>아직 표시할 선반이 없습니다</strong><span>가로, 깊이, 높이, 단수를 선택하고 품목을 추가해주세요.</span></div>
       </div>
@@ -1356,7 +1338,7 @@ document.getElementById('btnExcel').addEventListener('click', function(){
   showToast('엑셀 파일 다운로드됐어요!','success');
 });
 </script>
-<script type="importmap">
+<script type="text/plain" id="old-three-importmap-disabled">
 {
   "imports": {
     "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
@@ -1364,7 +1346,7 @@ document.getElementById('btnExcel').addEventListener('click', function(){
   }
 }
 </script>
-<script type="module">
+<script type="text/plain" id="old-three-visual-disabled">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -1583,6 +1565,174 @@ window.addEventListener('resize',resize);
 resize();
 window.renderAngleVisualizer(window.items||[]);
 animate();
+</script>
+<script src="https://unpkg.com/konva@10/konva.min.js"></script>
+<script>
+(function(){
+  var stageBox=document.getElementById('angleVisualStage');
+  var holder=document.getElementById('layoutVisual');
+  var empty=document.getElementById('visualEmpty');
+  var meta=document.getElementById('visualMeta');
+  var legend=document.getElementById('visualLegend');
+  var stage=null, layer=null, lastItems=[];
+
+  function isBlack(color){
+    var text=String(color||'').toLowerCase();
+    return text.indexOf('black')>-1 || text.indexOf('블랙')>-1 || text.indexOf('釉')>-1;
+  }
+  function expandUnits(list){
+    var units=[];
+    (list||[]).forEach(function(it){
+      var qty=Math.max(1, Number(it.qty)||1);
+      for(var i=0;i<qty;i++) units.push(it);
+    });
+    return units.slice(0, 14);
+  }
+  function summarize(units){
+    var byW={};
+    units.forEach(function(u){ byW[u.w]=(byW[u.w]||0)+1; });
+    return Object.keys(byW).map(Number).sort(function(a,b){return a-b;}).map(function(w){
+      return 'W'+w+'×'+byW[w]+'개';
+    }).join(' + ');
+  }
+  function arrow(layer, points, color){
+    layer.add(new Konva.Arrow({
+      points:points,
+      pointerLength:7,
+      pointerWidth:7,
+      fill:color,
+      stroke:color,
+      strokeWidth:1.4
+    }));
+  }
+  function rect(group, cfg){
+    group.add(new Konva.Rect(Object.assign({cornerRadius:1, listening:false}, cfg)));
+  }
+  function drawRackUnit(parent, unit, x, y, w, h, scale){
+    var black=isBlack(unit.color);
+    var frame=black?'#171c1f':'#d6ddda';
+    var frameHi=black?'#2b3235':'#f7faf8';
+    var frameLo=black?'#080b0d':'#aeb9b5';
+    var shelf=black?'#1f2528':'#ecf0ee';
+    var hole=black?'#687177':'#8f9b97';
+    var post=Math.max(8, Math.min(14, 42*scale));
+    var rail=Math.max(8, Math.min(14, 38*scale));
+    var tier=Math.max(2, Number(unit.tier)||2);
+    var g=new Konva.Group({x:x,y:y,listening:false});
+
+    rect(g,{x:0,y:0,width:w,height:rail,fill:frameLo});
+    rect(g,{x:0,y:h-rail,width:w,height:rail,fill:frameLo});
+    rect(g,{x:0,y:0,width:post,height:h,fill:frame});
+    rect(g,{x:w-post,y:0,width:post,height:h,fill:frame});
+    rect(g,{x:post*.18,y:0,width:post*.28,height:h,fill:frameHi,opacity:.28});
+    rect(g,{x:w-post+post*.18,y:0,width:post*.28,height:h,fill:frameHi,opacity:.28});
+
+    var holeCount=Math.max(10, Math.floor(h/13));
+    for(var i=0;i<holeCount;i++){
+      var hy=10+i*(h-20)/(holeCount-1);
+      g.add(new Konva.Circle({x:post/2,y:hy,r:1.45,fill:hole,opacity:.8,listening:false}));
+      g.add(new Konva.Circle({x:w-post/2,y:hy,r:1.45,fill:hole,opacity:.8,listening:false}));
+    }
+
+    for(var t=0;t<tier;t++){
+      var sy=tier===1?h-rail:(h-rail)-(h-rail*2)*(t/(tier-1));
+      rect(g,{x:0,y:sy-rail*.25,width:w,height:rail*.82,fill:shelf});
+      rect(g,{x:0,y:sy+rail*.42,width:w,height:rail*.48,fill:frameLo});
+      rect(g,{x:post,y:sy-rail*.08,width:Math.max(1,w-post*2),height:2,fill:frameHi,opacity:.25});
+    }
+
+    parent.add(g);
+  }
+  function initStage(width,height){
+    holder.innerHTML='';
+    stage=new Konva.Stage({container:'layoutVisual',width:width,height:height});
+    layer=new Konva.Layer();
+    stage.add(layer);
+  }
+  function draw(list){
+    if(!window.Konva || !holder || !stageBox) return;
+    lastItems=(list||[]).slice();
+    var units=expandUnits(lastItems);
+    var has=units.length>0;
+    empty.style.display=has?'none':'grid';
+    holder.style.display=has?'block':'none';
+    if(!has){
+      if(meta) meta.textContent='품목을 추가하면 총장과 유닛별 가로가 자동 표시됩니다';
+      if(legend) legend.innerHTML='';
+      return;
+    }
+
+    var rectSize=stageBox.getBoundingClientRect();
+    var width=Math.max(780, Math.floor(rectSize.width||1000));
+    var height=Math.max(420, Math.round(width*0.54));
+    initStage(width,height);
+
+    var totalW=units.reduce(function(a,u){return a+(Number(u.w)||0);},0);
+    var maxH=units.reduce(function(a,u){return Math.max(a,Number(u.h)||0);},0);
+    var maxTier=units.reduce(function(a,u){return Math.max(a,Number(u.tier)||0);},0);
+    var depth=units[0].d||'';
+    var color=units[0].color||'';
+    var marginX=52, topInfo=112, bottom=64;
+    var availW=width-marginX*2;
+    var availH=height-topInfo-bottom;
+    var scale=Math.min(availW/Math.max(totalW,1), availH/Math.max(maxH,1));
+    var rackW=totalW*scale;
+    var rackH=maxH*scale;
+    var rackX=(width-rackW)/2;
+    var rackY=topInfo+(availH-rackH)/2+18;
+
+    layer.add(new Konva.Rect({x:0,y:0,width:width,height:height,fillLinearGradientStartPoint:{x:0,y:0},fillLinearGradientEndPoint:{x:width,y:height},fillLinearGradientColorStops:[0,'#f1eee9',.45,'#ffffff',1,'#e7e2dc'],cornerRadius:16,listening:false}));
+    var typeBadge=new Konva.Label({x:24,y:18,listening:false});
+    typeBadge.add(new Konva.Tag({fill:'#333',cornerRadius:7}));
+    typeBadge.add(new Konva.Text({text:'타입 ①',fontFamily:'Noto Sans KR',fontSize:15,fontStyle:'700',fill:'#fff',padding:8}));
+    layer.add(typeBadge);
+    var note=new Konva.Label({x:width-392,y:15,listening:false});
+    note.add(new Konva.Tag({fill:'#2f2f2f',cornerRadius:8}));
+    note.add(new Konva.Text({text:'참고 : 가로 최소 400~최대 1200 / 정100미리 단위 제작 가능',fontFamily:'Noto Sans KR',fontSize:13,fontStyle:'700',fill:'#fff',padding:8}));
+    layer.add(note);
+    layer.add(new Konva.Text({x:24,y:64,text:'총장 '+totalW+'mm',fontFamily:'Noto Sans KR',fontSize:24,fontStyle:'900',fill:'#111',listening:false}));
+    layer.add(new Konva.Text({x:24,y:95,text:summarize(units)+' · D'+depth+' · H'+maxH+' · '+maxTier+'단',fontFamily:'Noto Sans KR',fontSize:16,fontStyle:'700',fill:'#333',listening:false}));
+
+    arrow(layer,[rackX,rackY-26,rackX+rackW,rackY-26],'#202020');
+    layer.add(new Konva.Text({x:rackX,y:rackY-52,width:rackW,text:totalW+'mm',fontFamily:'Noto Sans KR',fontSize:22,fontStyle:'900',align:'center',fill:'#111',listening:false}));
+    var tag=new Konva.Label({x:24,y:rackY-52,listening:false});
+    tag.add(new Konva.Tag({fill:'#333',cornerRadius:6}));
+    tag.add(new Konva.Text({text:'유닛별 가로 사이즈',fontFamily:'Noto Sans KR',fontSize:14,fontStyle:'800',fill:'#fff',padding:7}));
+    layer.add(tag);
+
+    var shelfGroup=new Konva.Group({listening:false});
+    var x=rackX;
+    units.forEach(function(u,idx){
+      var uw=(Number(u.w)||0)*scale;
+      drawRackUnit(shelfGroup,u,x,rackY,uw,rackH,scale);
+      layer.add(new Konva.Text({x:x,y:rackY-22,width:uw,text:u.w+'mm',fontFamily:'Noto Sans KR',fontSize:13,fontStyle:'800',align:'center',fill:'#222',listening:false}));
+      if(idx<units.length-1){
+        layer.add(new Konva.Line({points:[x+uw,rackY,x+uw,rackY+rackH],stroke:'#101416',strokeWidth:1,opacity:.35,listening:false}));
+      }
+      x+=uw;
+    });
+    layer.add(shelfGroup);
+    layer.add(new Konva.Rect({x:0,y:rackY+rackH+20,width:width,height:34,fill:'#d9d4cb',opacity:.85,listening:false}));
+    layer.add(new Konva.Text({x:0,y:height-35,width:width,text:'축척 기준: 총장과 높이를 같은 비율로 자동 계산',fontFamily:'Noto Sans KR',fontSize:12,fontStyle:'700',align:'center',fill:'#5f5a54',listening:false}));
+    layer.draw();
+
+    if(meta) meta.textContent='총장 '+totalW+'mm 정면 배치도를 실제 비율로 표시 중입니다';
+    if(legend){
+      legend.innerHTML=units.slice(0,8).map(function(it){
+        return '<span class="visual-chip">W'+it.w+' × D'+it.d+' × H'+it.h+' · '+it.tier+'단 · '+it.color+'</span>';
+      }).join('');
+    }
+  }
+
+  window.renderAngleVisualizer=draw;
+  window.getAngleVisualizerImage=function(){
+    if(!stage || !lastItems.length) draw(window.items||[]);
+    if(!stage || !lastItems.length) return '';
+    return stage.toDataURL({pixelRatio:2,mimeType:'image/png'});
+  };
+  window.addEventListener('resize',function(){ draw(lastItems); });
+  setTimeout(function(){ draw(window.items||[]); },0);
+})();
 </script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js');});}</script>
 </body>
