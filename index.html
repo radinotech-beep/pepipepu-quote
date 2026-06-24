@@ -447,6 +447,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
     <p class="sec-title">고객 정보</p>
     <div class="sec-box" style="display:flex;flex-direction:column;gap:8px">
       <div class="fld"><span class="lbl">고객명 / 업체명</span><input type="text" class="ipt" id="iCustomer" placeholder="예) 홍길동 / (주)OOO"></div>
+      <div class="fld"><span class="lbl">거래처 이메일</span><input type="email" class="ipt" id="iCustomerEmail" placeholder="customer@example.com"></div>
       <div class="fld"><span class="lbl">발행일</span><input type="date" class="ipt" id="iDate"></div>
     </div>
   </div>
@@ -589,6 +590,10 @@ input.qty-num[type=number]{-moz-appearance:textfield}
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         PNG 저장
       </button>
+      <button class="tbtn primary" id="btnEmail">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>
+        견적서 이메일로 보내기
+      </button>
       <button class="tbtn primary" id="btnExcel">
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
         엑셀 내보내기
@@ -636,6 +641,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
 var P={"200":{"200":{"300":19700}},"300":{"300":{"600":30400,"900":30400}},"400":{"300":{"900":32900,"1200":37100,"1500":41400,"1800":45600,"2100":49900},"400":{"900":38700,"1200":42900,"1500":47200,"1800":51400,"2100":55700}},"500":{"300":{"900":36700,"1200":40900,"1500":45100,"1800":49400,"2100":53600},"400":{"900":40400,"1200":44700,"1500":48900,"1800":53200,"2100":57400},"500":{"900":44700,"1200":48900,"1500":53200,"1800":57400,"2100":61700}},"600":{"300":{"900":38900,"1200":43100,"1500":47300,"1800":51600,"2100":55800},"400":{"900":42600,"1200":46900,"1500":51100,"1800":55400,"2100":59600},"500":{"900":48400,"1200":52700,"1500":56900,"1800":61200,"2100":65400},"600":{"900":50200,"1200":54400,"1500":58700,"1800":62900,"2100":67100}},"700":{"300":{"900":42600,"1200":46900,"1500":51100,"1800":55400,"2100":59600},"400":{"900":47700,"1200":51900,"1500":56100,"1800":60400,"2100":64600},"500":{"900":54100,"1200":58400,"1500":62600,"1800":66800,"2100":71100},"600":{"900":56000,"1200":60200,"1500":64500,"1800":68700,"2100":73000},"700":{"900":58500,"1200":62800,"1500":67000,"1800":71200,"2100":75500}},"800":{"300":{"900":44500,"1200":48800,"1500":53000,"1800":57200,"2100":61500},"400":{"900":49400,"1200":53600,"1500":57900,"1800":62100,"2100":66400},"500":{"900":56000,"1200":60200,"1500":64500,"1800":68700,"2100":73000},"600":{"900":58500,"1200":62800,"1500":67000,"1800":71200,"2100":75500},"700":{"900":60400,"1200":64600,"1500":68900,"1800":73100,"2100":77400},"800":{"900":66800,"1200":71100,"1500":75300,"1800":79600,"2100":83800}},"900":{"300":{"900":47500,"1200":51700,"1500":56000,"1800":60200,"2100":64500},"400":{"900":52100,"1200":56300,"1500":60600,"1800":64800,"2100":69000},"500":{"900":60100,"1200":64300,"1500":68600,"1800":72800,"2100":77000},"600":{"900":62300,"1200":66500,"1500":70800,"1800":75000,"2100":79200},"700":{"900":64200,"1200":68400,"1500":72600,"1800":76900,"2100":81100},"800":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"900":{"900":76400,"1200":80700,"1500":84900,"1800":89100,"2100":93400}},"1000":{"300":{"900":50500,"1200":54700,"1500":59000,"1800":63200,"2100":67500},"400":{"900":55400,"1200":59600,"1500":63900,"1800":68100,"2100":72300},"500":{"900":63900,"1200":68100,"1500":72300,"1800":76600,"2100":80800},"600":{"900":66000,"1200":70300,"1500":74500,"1800":78800,"2100":83000},"700":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"800":{"900":75900,"1200":80200,"1500":84400,"1800":88700,"2100":92900},"900":{"900":81300,"1200":85500,"1500":89800,"1800":94000,"2100":98300}},"1100":{"300":{"900":54600,"1200":58800,"1500":63100,"1800":67300,"2100":71500},"400":{"900":60400,"1200":64600,"1500":68900,"1800":73100,"2100":77400},"500":{"900":69700,"1200":73900,"1500":78100,"1800":82400,"2100":86600},"600":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"700":{"900":73600,"1200":77800,"1500":82100,"1800":86300,"2100":90600},"800":{"900":82900,"1200":87100,"1500":91300,"1800":95600,"2100":99800},"900":{"900":88700,"1200":92900,"1500":97200,"1800":101400,"2100":105600}},"1200":{"300":{"900":56500,"1200":60700,"1500":65000,"1800":69200,"2100":73400},"400":{"900":62100,"1200":66400,"1500":70600,"1800":74800,"2100":79100},"500":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"600":{"900":73600,"1200":77800,"1500":82100,"1800":86300,"2100":90600},"700":{"900":75500,"1200":79700,"1500":84000,"1800":88200,"2100":92400},"800":{"900":85100,"1200":89300,"1500":93500,"1800":97800,"2100":102000},"900":{"900":90400,"1200":94600,"1500":98900,"1800":103100,"2100":107400}}};
 var TA={"300":{"300":7700},"400":{"300":8800,"400":11700},"500":{"300":10700,"400":12600,"500":14600},"600":{"300":11800,"400":13700,"500":16500,"600":17500},"700":{"300":13700,"400":16100,"500":19400,"600":20200,"700":21600},"800":{"300":14500,"400":17000,"500":20200,"600":21600,"700":22500,"800":25800},"900":{"300":16100,"400":18300,"500":22400,"600":23500,"700":24400,"800":28200,"900":30500},"1000":{"300":17500,"400":20000,"500":24200,"600":25300,"700":28200,"800":30400,"900":33000},"1100":{"300":19700,"400":22500,"500":27100,"600":28200,"700":29100,"800":33800,"900":36600},"1200":{"300":20500,"400":23400,"500":28200,"600":29100,"700":30000,"800":34900,"900":37500}};
@@ -1080,6 +1086,7 @@ document.getElementById('saveBtn').addEventListener('click', function(){
   var data={
     id:id,
     customer:customer,
+    customerEmail:document.getElementById('iCustomerEmail').value || '',
     date:document.getElementById('iDate').value,
     items:JSON.parse(JSON.stringify(items)),
     optionItems:JSON.parse(JSON.stringify(optionItems)),
@@ -1154,6 +1161,7 @@ function loadQuote(id){
   var q=JSON.parse(d);
   items=q.items||[]; optionItems=q.optionItems||[];
   document.getElementById('iCustomer').value=q.customer==='(고객명 없음)'?'':q.customer;
+  document.getElementById('iCustomerEmail').value=q.customerEmail || '';
   document.getElementById('iDate').value=q.date||'';
   document.getElementById('iDiscount').value=q.discount||0;
   renderItems(); renderOptList(); updateBanner();
@@ -1177,6 +1185,99 @@ function deleteQuote(id, e){
 
 function libLoad(el){ loadQuote(el.dataset.id); }
 function libDel(el,e){ deleteQuote(el.dataset.id, e); }
+
+const EMAILJS_SERVICE_ID = "service_v3fqc75";
+const EMAILJS_TEMPLATE_ID = "template_65mxq6a";
+const EMAILJS_PUBLIC_KEY = "h-Bh91xBW8cIdY4T6";
+
+if (window.emailjs) {
+  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+function captureQuoteImage(options) {
+  var doc = document.getElementById('quoteDoc');
+  if (!doc) return Promise.reject(new Error('먼저 견적서를 생성해주세요'));
+  options = options || {};
+  var scale = options.scale || 1.5;
+  var quality = options.quality || 0.72;
+  return document.fonts.ready.then(function(){
+    return html2canvas(doc, {
+      scale: scale,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false
+    });
+  }).then(function(canvas){
+    var dataUrl = canvas.toDataURL('image/jpeg', quality);
+    if (dataUrl.length > 950000 && scale > 1.05) {
+      return captureQuoteImage({ scale: 1.05, quality: 0.58 });
+    }
+    return dataUrl;
+  });
+}
+
+function buildEmailMessage(customer) {
+  return [
+    customer + ' 귀하',
+    '',
+    '안녕하세요. (주) 페피페푸입니다.',
+    '요청하신 앵글선반 견적서를 아래 이미지로 전달드립니다.',
+    '검토 후 문의사항이 있으시면 편하게 연락 부탁드립니다.',
+    '',
+    '감사합니다.',
+    '(주) 페피페푸'
+  ].join('\n');
+}
+
+document.getElementById('btnEmail').addEventListener('click', function(){
+  var btn = this;
+  var orig = btn.innerHTML;
+  var customer = (document.getElementById('iCustomer').value || '').trim();
+  var toEmail = (document.getElementById('iCustomerEmail').value || '').trim();
+
+  if (!customer) {
+    showToast('고객명 / 업체명을 입력해주세요', 'error');
+    document.getElementById('iCustomer').focus();
+    return;
+  }
+  if (!isValidEmail(toEmail)) {
+    showToast('거래처 이메일 주소를 확인해주세요', 'error');
+    document.getElementById('iCustomerEmail').focus();
+    return;
+  }
+  if (!document.getElementById('quoteDoc')) {
+    showToast('먼저 견적서를 생성해주세요', 'error');
+    return;
+  }
+  if (!window.emailjs) {
+    showToast('EmailJS SDK를 불러오지 못했습니다. 인터넷 연결을 확인해주세요', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '발송 중...';
+
+  captureQuoteImage({ scale: 1.35, quality: 0.7 }).then(function(quoteImage){
+    return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email: toEmail,
+      customer_name: customer,
+      message: buildEmailMessage(customer),
+      quote_image: quoteImage
+    });
+  }).then(function(){
+    showToast('발송 완료', 'success');
+  }).catch(function(error){
+    var msg = error && (error.text || error.message) ? (error.text || error.message) : String(error || '알 수 없는 오류');
+    showToast('이메일 발송 실패: ' + msg + ' / 잠시 후 재시도해주세요', 'error');
+  }).finally(function(){
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  });
+});
 
 
 document.getElementById('btnPng').addEventListener('click', function(){

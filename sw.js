@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v3';
+const CACHE = 'pepipepu-v4-email';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
