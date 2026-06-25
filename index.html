@@ -1206,7 +1206,7 @@ function libDel(el,e){ deleteQuote(el.dataset.id, e); }
 const EMAILJS_SERVICE_ID = "service_v3fqc75";
 const EMAILJS_TEMPLATE_ID = "template_65mxq6a";
 const EMAILJS_PUBLIC_KEY = "h-Bh91xBW8cIdY4T6";
-const EMAILJS_IMAGE_TARGET_CHARS = 43000;
+const EMAILJS_IMAGE_TARGET_CHARS = 48500;
 
 if (window.emailjs) {
   emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
@@ -1227,19 +1227,52 @@ function renderQuoteTarget(target, scale) {
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
-      removeContainer: true
+      removeContainer: true,
+      onclone: function(clonedDoc) {
+        var style = clonedDoc.createElement('style');
+        style.textContent = [
+          '#quoteDoc{box-shadow:none!important;border-radius:0!important;max-width:520px!important;}',
+          '#quoteDoc .qh{padding:1.25rem 1.65rem 1.05rem!important;}',
+          '#quoteDoc .qh-top{margin-bottom:.85rem!important;}',
+          '#quoteDoc .qbody{padding:1.1rem 1.65rem 1.2rem!important;}',
+          '#quoteDoc .qgreeting{margin-bottom:.7rem!important;}',
+          '#quoteDoc .qtbl{margin-bottom:.8rem!important;}',
+          '#quoteDoc .qtbl th{padding:6px 8px!important;}',
+          '#quoteDoc .qtbl td{padding:6px 8px!important;}',
+          '#quoteDoc .qfoot{padding-top:.55rem!important;}',
+          '#quoteDoc .qfoot img{display:none!important;}',
+          '#quoteDoc .quote-visual{padding:7px!important;margin-bottom:8px!important;border-radius:0!important;}',
+          '#quoteDoc .quote-visual img{border-radius:0!important;max-height:220px!important;}'
+        ].join('\n');
+        clonedDoc.head.appendChild(style);
+      }
     });
   });
 }
 
-function pickCompressedJpeg(canvas, qualities) {
+function pickCompressedQuoteImage(canvas, qualities) {
+  var png = canvas.toDataURL('image/png');
+  var best = {
+    dataUrl: png,
+    format: 'png',
+    quality: 1,
+    width: canvas.width,
+    height: canvas.height,
+    chars: png.length,
+    kb: getDataUrlSizeKb(png)
+  };
+  if (png.length <= EMAILJS_IMAGE_TARGET_CHARS) return best;
+
   var best = null;
   for (var i = 0; i < qualities.length; i++) {
     var quality = qualities[i];
     var dataUrl = canvas.toDataURL('image/jpeg', quality);
     var result = {
       dataUrl: dataUrl,
+      format: 'jpeg',
       quality: quality,
+      width: canvas.width,
+      height: canvas.height,
       chars: dataUrl.length,
       kb: getDataUrlSizeKb(dataUrl)
     };
@@ -1253,14 +1286,12 @@ function captureQuoteImage() {
   var doc = document.getElementById('quoteDoc');
   if (!doc) return Promise.reject(new Error('먼저 견적서를 생성해주세요'));
 
-  var body = doc.querySelector('.qbody') || doc;
-  var table = doc.querySelector('.qtbl') || body;
   var attempts = [
-    { label: '전체 견적서', target: doc, scale: 0.52, qualities: [0.62, 0.54, 0.46, 0.38, 0.30] },
-    { label: '전체 견적서', target: doc, scale: 0.42, qualities: [0.52, 0.44, 0.36, 0.28, 0.22] },
-    { label: '견적서 본문', target: body, scale: 0.56, qualities: [0.58, 0.48, 0.38, 0.30, 0.24] },
-    { label: '품목/금액 표', target: table, scale: 0.72, qualities: [0.62, 0.52, 0.42, 0.34, 0.26] },
-    { label: '품목/금액 표', target: table, scale: 0.56, qualities: [0.48, 0.38, 0.30, 0.22, 0.16] }
+    { label: '전체 견적서', target: doc, scale: 0.74, qualities: [0.70, 0.64, 0.58, 0.52, 0.46, 0.40] },
+    { label: '전체 견적서', target: doc, scale: 0.66, qualities: [0.72, 0.66, 0.60, 0.54, 0.48, 0.42] },
+    { label: '전체 견적서', target: doc, scale: 0.58, qualities: [0.74, 0.68, 0.62, 0.56, 0.50, 0.44] },
+    { label: '전체 견적서', target: doc, scale: 0.52, qualities: [0.76, 0.70, 0.64, 0.58, 0.52, 0.46] },
+    { label: '전체 견적서', target: doc, scale: 0.46, qualities: [0.74, 0.66, 0.58, 0.50, 0.42, 0.34] }
   ];
 
   function tryAttempt(index, smallest) {
@@ -1270,7 +1301,7 @@ function captureQuoteImage() {
     }
     var attempt = attempts[index];
     return renderQuoteTarget(attempt.target, attempt.scale).then(function(canvas){
-      var result = pickCompressedJpeg(canvas, attempt.qualities);
+      var result = pickCompressedQuoteImage(canvas, attempt.qualities);
       result.label = attempt.label;
       result.scale = attempt.scale;
       if (!smallest || result.chars < smallest.chars) smallest = result;
@@ -1280,7 +1311,7 @@ function captureQuoteImage() {
   }
 
   return tryAttempt(0, null).then(function(result){
-    showToast('견적 이미지 ' + result.kb + 'KB로 압축 후 발송합니다', 'success');
+    showToast('견적 이미지 ' + result.kb + 'KB / ' + result.width + '×' + result.height + ' / ' + result.format.toUpperCase() + '로 발송합니다', 'success');
     return result.dataUrl;
   });
 }

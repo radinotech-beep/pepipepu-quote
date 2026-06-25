@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v7-quote-visual-toggle';
+const CACHE = 'pepipepu-v8-email-image-quality';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
