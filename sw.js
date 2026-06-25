@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v10-mail-compose-pdf';
+const CACHE = 'pepipepu-v11-mobile-mailto-pdf';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));

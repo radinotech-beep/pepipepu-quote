@@ -1306,14 +1306,23 @@ function buildEmailMessage(customer) {
 
 function buildMailUrls(toEmail, customer) {
   var subject = '[페피페푸-앵글선반] 견적서를 보내드립니다';
-  var body = buildEmailMessage(customer);
+  var body = buildEmailMessage(customer).replace(/\n/g, '\r\n');
   var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(toEmail) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-  var mailtoUrl = 'mailto:' + encodeURIComponent(toEmail) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  var mailtoUrl = 'mailto:' + toEmail + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
   return { gmailUrl: gmailUrl, mailtoUrl: mailtoUrl };
+}
+
+function isMobileMailDevice() {
+  var ua = navigator.userAgent || '';
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
 }
 
 function openMailCompose(toEmail, customer) {
   var urls = buildMailUrls(toEmail, customer);
+  if (isMobileMailDevice()) {
+    window.location.href = urls.mailtoUrl;
+    return;
+  }
   var win = window.open(urls.gmailUrl, '_blank', 'noopener');
   if (!win) {
     window.location.href = urls.mailtoUrl;
