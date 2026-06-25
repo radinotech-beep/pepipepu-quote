@@ -607,7 +607,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
       </label>
       <button class="tbtn primary" id="btnEmail">
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>
-        PDF 링크 이메일로 보내기
+        메일 보내기
       </button>
       <button class="tbtn primary" id="btnExcel">
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
@@ -656,7 +656,6 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script>
 var P={"200":{"200":{"300":19700}},"300":{"300":{"600":30400,"900":30400}},"400":{"300":{"900":32900,"1200":37100,"1500":41400,"1800":45600,"2100":49900},"400":{"900":38700,"1200":42900,"1500":47200,"1800":51400,"2100":55700}},"500":{"300":{"900":36700,"1200":40900,"1500":45100,"1800":49400,"2100":53600},"400":{"900":40400,"1200":44700,"1500":48900,"1800":53200,"2100":57400},"500":{"900":44700,"1200":48900,"1500":53200,"1800":57400,"2100":61700}},"600":{"300":{"900":38900,"1200":43100,"1500":47300,"1800":51600,"2100":55800},"400":{"900":42600,"1200":46900,"1500":51100,"1800":55400,"2100":59600},"500":{"900":48400,"1200":52700,"1500":56900,"1800":61200,"2100":65400},"600":{"900":50200,"1200":54400,"1500":58700,"1800":62900,"2100":67100}},"700":{"300":{"900":42600,"1200":46900,"1500":51100,"1800":55400,"2100":59600},"400":{"900":47700,"1200":51900,"1500":56100,"1800":60400,"2100":64600},"500":{"900":54100,"1200":58400,"1500":62600,"1800":66800,"2100":71100},"600":{"900":56000,"1200":60200,"1500":64500,"1800":68700,"2100":73000},"700":{"900":58500,"1200":62800,"1500":67000,"1800":71200,"2100":75500}},"800":{"300":{"900":44500,"1200":48800,"1500":53000,"1800":57200,"2100":61500},"400":{"900":49400,"1200":53600,"1500":57900,"1800":62100,"2100":66400},"500":{"900":56000,"1200":60200,"1500":64500,"1800":68700,"2100":73000},"600":{"900":58500,"1200":62800,"1500":67000,"1800":71200,"2100":75500},"700":{"900":60400,"1200":64600,"1500":68900,"1800":73100,"2100":77400},"800":{"900":66800,"1200":71100,"1500":75300,"1800":79600,"2100":83800}},"900":{"300":{"900":47500,"1200":51700,"1500":56000,"1800":60200,"2100":64500},"400":{"900":52100,"1200":56300,"1500":60600,"1800":64800,"2100":69000},"500":{"900":60100,"1200":64300,"1500":68600,"1800":72800,"2100":77000},"600":{"900":62300,"1200":66500,"1500":70800,"1800":75000,"2100":79200},"700":{"900":64200,"1200":68400,"1500":72600,"1800":76900,"2100":81100},"800":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"900":{"900":76400,"1200":80700,"1500":84900,"1800":89100,"2100":93400}},"1000":{"300":{"900":50500,"1200":54700,"1500":59000,"1800":63200,"2100":67500},"400":{"900":55400,"1200":59600,"1500":63900,"1800":68100,"2100":72300},"500":{"900":63900,"1200":68100,"1500":72300,"1800":76600,"2100":80800},"600":{"900":66000,"1200":70300,"1500":74500,"1800":78800,"2100":83000},"700":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"800":{"900":75900,"1200":80200,"1500":84400,"1800":88700,"2100":92900},"900":{"900":81300,"1200":85500,"1500":89800,"1800":94000,"2100":98300}},"1100":{"300":{"900":54600,"1200":58800,"1500":63100,"1800":67300,"2100":71500},"400":{"900":60400,"1200":64600,"1500":68900,"1800":73100,"2100":77400},"500":{"900":69700,"1200":73900,"1500":78100,"1800":82400,"2100":86600},"600":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"700":{"900":73600,"1200":77800,"1500":82100,"1800":86300,"2100":90600},"800":{"900":82900,"1200":87100,"1500":91300,"1800":95600,"2100":99800},"900":{"900":88700,"1200":92900,"1500":97200,"1800":101400,"2100":105600}},"1200":{"300":{"900":56500,"1200":60700,"1500":65000,"1800":69200,"2100":73400},"400":{"900":62100,"1200":66400,"1500":70600,"1800":74800,"2100":79100},"500":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"600":{"900":73600,"1200":77800,"1500":82100,"1800":86300,"2100":90600},"700":{"900":75500,"1200":79700,"1500":84000,"1800":88200,"2100":92400},"800":{"900":85100,"1200":89300,"1500":93500,"1800":97800,"2100":102000},"900":{"900":90400,"1200":94600,"1500":98900,"1800":103100,"2100":107400}}};
@@ -1208,17 +1207,6 @@ function deleteQuote(id, e){
 function libLoad(el){ loadQuote(el.dataset.id); }
 function libDel(el,e){ deleteQuote(el.dataset.id, e); }
 
-const EMAILJS_SERVICE_ID = "service_v3fqc75";
-const EMAILJS_TEMPLATE_ID = "template_65mxq6a";
-const EMAILJS_PUBLIC_KEY = "h-Bh91xBW8cIdY4T6";
-const QUOTE_UPLOAD_URL = "https://file.io";
-const QUOTE_PDF_EXPIRES = "2w";
-const QUOTE_PDF_MAX_DOWNLOADS = "20";
-
-if (window.emailjs) {
-  emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
-}
-
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
@@ -1283,31 +1271,12 @@ function makeQuotePdfBlob() {
 }
 
 function makeQuotePdfFileName() {
-  var customer = (document.getElementById('iCustomer').value || 'customer').replace(/[\\/:*?"<>|]/g, '').trim() || 'customer';
-  var dateVal = document.getElementById('iDate').value || new Date().toISOString().slice(0, 10);
-  return 'pepipepu-quote-' + customer + '-' + dateVal + '.pdf';
-}
-
-function uploadQuotePdf(pdfInfo) {
-  var form = new FormData();
-  form.append('file', pdfInfo.blob, pdfInfo.fileName);
-  form.append('expires', QUOTE_PDF_EXPIRES);
-  form.append('maxDownloads', QUOTE_PDF_MAX_DOWNLOADS);
-  form.append('autoDelete', 'false');
-
-  return fetch(QUOTE_UPLOAD_URL, {
-    method: 'POST',
-    body: form
-  }).then(function(res){
-    if (!res.ok) throw new Error('PDF 업로드 실패: HTTP ' + res.status);
-    return res.json();
-  }).then(function(data){
-    if (!data || !data.success || !data.link) {
-      throw new Error('PDF 업로드 응답에서 링크를 받지 못했습니다');
-    }
-    pdfInfo.link = data.link;
-    return pdfInfo;
-  });
+  var customer = (document.getElementById('iCustomer').value || '고객').replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim() || '고객';
+  var now = new Date();
+  var yyyy = String(now.getFullYear());
+  var mm = String(now.getMonth() + 1).padStart(2, '0');
+  var dd = String(now.getDate()).padStart(2, '0');
+  return customer + '_견적서_' + yyyy + mm + dd + '.pdf';
 }
 
 function downloadPdfBlob(pdfInfo) {
@@ -1326,9 +1295,29 @@ function buildEmailMessage(customer) {
     customer + ' 귀하',
     '',
     '안녕하세요. (주) 페피페푸입니다.',
-    '요청하신 앵글선반 견적서 PDF 다운로드 링크를 전달드립니다.',
-    '검토 후 문의사항이 있으시면 편하게 연락 부탁드립니다.'
+    '요청하신 앵글선반 견적서를 첨부파일로 보내드립니다.',
+    '첨부된 PDF 견적서를 확인해주시고 문의사항이 있으시면 편하게 연락 부탁드립니다.',
+    '',
+    '감사합니다.',
+    '(주) 페피페푸',
+    '010-5395-4977'
   ].join('\n');
+}
+
+function buildMailUrls(toEmail, customer) {
+  var subject = '[페피페푸-앵글선반] 견적서를 보내드립니다';
+  var body = buildEmailMessage(customer);
+  var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(toEmail) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  var mailtoUrl = 'mailto:' + encodeURIComponent(toEmail) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  return { gmailUrl: gmailUrl, mailtoUrl: mailtoUrl };
+}
+
+function openMailCompose(toEmail, customer) {
+  var urls = buildMailUrls(toEmail, customer);
+  var win = window.open(urls.gmailUrl, '_blank', 'noopener');
+  if (!win) {
+    window.location.href = urls.mailtoUrl;
+  }
 }
 
 document.getElementById('btnPdf').addEventListener('click', function(){
@@ -1372,35 +1361,19 @@ document.getElementById('btnEmail').addEventListener('click', function(){
     showToast('먼저 견적서를 생성해주세요', 'error');
     return;
   }
-  if (!window.emailjs) {
-    showToast('EmailJS SDK를 불러오지 못했습니다. 인터넷 연결을 확인해주세요', 'error');
-    return;
-  }
-
   btn.disabled = true;
-  btn.textContent = 'PDF 생성 중...';
+  btn.textContent = 'PDF 저장 중...';
 
   makeQuotePdfBlob().then(function(pdfInfo){
-    btn.textContent = 'PDF 업로드 중...';
-    return uploadQuotePdf(pdfInfo);
-  }).then(function(pdfInfo){
-    btn.textContent = '이메일 발송 중...';
-    return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      to_email: toEmail,
-      customer_name: customer,
-      message: buildEmailMessage(customer),
-      quote_pdf_link: pdfInfo.link,
-      quote_image: ''
-    }).then(function(){
-      return pdfInfo;
-    });
+    downloadPdfBlob(pdfInfo);
+    showToast('PDF 저장 완료 / 메일 작성창을 엽니다', 'success');
+    setTimeout(function(){
+      openMailCompose(toEmail, customer);
+    }, 300);
+    return pdfInfo;
   }).catch(function(error){
-    var msg = error && (error.text || error.message) ? (error.text || error.message) : String(error || '알 수 없는 오류');
-    showToast('PDF 링크 이메일 발송 실패: ' + msg, 'error');
-  }).then(function(pdfInfo){
-    if (pdfInfo && pdfInfo.link) {
-      showToast('PDF 링크 이메일 발송 완료 / ' + Math.round(pdfInfo.pdfBytes / 1024) + 'KB / ' + pdfInfo.pixelWidth + '×' + pdfInfo.pixelHeight + 'px', 'success');
-    }
+    var msg = error && error.message ? error.message : String(error || '알 수 없는 오류');
+    showToast('메일 준비 실패: ' + msg, 'error');
   }).finally(function(){
     btn.innerHTML = orig;
     btn.disabled = false;
