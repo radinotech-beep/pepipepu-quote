@@ -669,6 +669,63 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   .bottom-fixed .save-btn,
   .bottom-fixed .mail-fixed-btn{font-size:12px;padding:0 4px}
 }
+
+/* quote-compact: keep PDF/preview from wasting a page on header/footer space */
+#quoteDoc .qh{padding:14px 16px 13px!important}
+#quoteDoc .qh-top{
+  display:grid!important;
+  grid-template-columns:minmax(92px,.82fr) minmax(0,1.58fr)!important;
+  gap:10px!important;
+  align-items:start!important;
+  margin-bottom:8px!important;
+}
+#quoteDoc .qtitle{font-size:22px!important;letter-spacing:4px!important;line-height:1.15!important}
+#quoteDoc .qco{
+  width:auto!important;
+  min-width:0!important;
+  padding:7px 9px!important;
+  font-size:8.7px!important;
+  line-height:1.45!important;
+  border-radius:7px!important;
+}
+#quoteDoc .qco div{gap:7px!important}
+#quoteDoc .qco strong{min-width:48px!important}
+#quoteDoc .qmeta{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(145px,215px)!important;
+  align-items:center!important;
+  gap:10px!important;
+  padding-top:8px!important;
+}
+#quoteDoc .qdate{font-size:9.5px!important}
+#quoteDoc .qcustomer{font-size:12px!important}
+#quoteDoc .qtb{
+  width:auto!important;
+  min-width:0!important;
+  padding:8px 10px!important;
+  text-align:left!important;
+}
+#quoteDoc .qtb .tl{font-size:9px!important;margin-bottom:1px!important}
+#quoteDoc .qtb .tv{font-size:20px!important}
+#quoteDoc .qbody{padding:12px 14px 14px!important}
+#quoteDoc .qgreeting{margin-bottom:8px!important;font-size:10.5px!important}
+#quoteDoc .qtbl{margin-bottom:8px!important}
+#quoteDoc .qtbl th{padding:6px 5px!important}
+#quoteDoc .qtbl td{padding:6px 5px!important;line-height:1.3!important}
+#quoteDoc .qsum{margin:0 0 8px auto!important;padding:8px 10px!important}
+#quoteDoc .qsum-line{line-height:1.55!important}
+#quoteDoc .qsum-final{margin-top:6px!important;padding-top:6px!important}
+#quoteDoc .qfoot{padding-top:7px!important;margin-top:8px!important;min-height:0!important}
+#quoteDoc .qfoot img{display:none!important}
+#quoteDoc .qfoot-note{font-size:8.5px!important;line-height:1.45!important}
+#quoteDoc .quote-visual{margin-bottom:8px!important;padding:8px!important}
+#quoteDoc .quote-visual img{max-height:220px!important}
+@media(max-width:420px){
+  #quoteDoc .qh-top{grid-template-columns:84px minmax(0,1fr)!important}
+  #quoteDoc .qmeta{grid-template-columns:minmax(0,1fr) minmax(120px,160px)!important}
+  #quoteDoc .qtitle{font-size:20px!important;letter-spacing:3px!important}
+  #quoteDoc .qtb .tv{font-size:18px!important}
+}
 </style>
 </head>
 <body>
@@ -1481,7 +1538,31 @@ function renderQuoteCanvas(target) {
         var style = clonedDoc.createElement('style');
         style.textContent = [
           '#quoteDoc{box-shadow:none!important;border-radius:0!important;max-width:520px!important;}',
-          '#quoteDoc .quote-visual img{max-height:260px!important;}'
+          '#quoteDoc .qh{padding:14px 16px 13px!important;}',
+          '#quoteDoc .qh-top{display:grid!important;grid-template-columns:minmax(92px,.82fr) minmax(0,1.58fr)!important;gap:10px!important;align-items:start!important;margin-bottom:8px!important;}',
+          '#quoteDoc .qtitle{font-size:22px!important;letter-spacing:4px!important;line-height:1.15!important;}',
+          '#quoteDoc .qco{width:auto!important;min-width:0!important;padding:7px 9px!important;font-size:8.7px!important;line-height:1.45!important;border-radius:7px!important;}',
+          '#quoteDoc .qco div{gap:7px!important;}',
+          '#quoteDoc .qco strong{min-width:48px!important;}',
+          '#quoteDoc .qmeta{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(145px,215px)!important;align-items:center!important;gap:10px!important;padding-top:8px!important;}',
+          '#quoteDoc .qdate{font-size:9.5px!important;}',
+          '#quoteDoc .qcustomer{font-size:12px!important;}',
+          '#quoteDoc .qtb{width:auto!important;min-width:0!important;padding:8px 10px!important;text-align:left!important;}',
+          '#quoteDoc .qtb .tl{font-size:9px!important;margin-bottom:1px!important;}',
+          '#quoteDoc .qtb .tv{font-size:20px!important;}',
+          '#quoteDoc .qbody{padding:12px 14px 14px!important;}',
+          '#quoteDoc .qgreeting{margin-bottom:8px!important;font-size:10.5px!important;}',
+          '#quoteDoc .qtbl{margin-bottom:8px!important;}',
+          '#quoteDoc .qtbl th{padding:6px 5px!important;}',
+          '#quoteDoc .qtbl td{padding:6px 5px!important;line-height:1.3!important;}',
+          '#quoteDoc .qsum{margin:0 0 8px auto!important;padding:8px 10px!important;}',
+          '#quoteDoc .qsum-line{line-height:1.55!important;}',
+          '#quoteDoc .qsum-final{margin-top:6px!important;padding-top:6px!important;}',
+          '#quoteDoc .qfoot{padding-top:7px!important;margin-top:8px!important;min-height:0!important;}',
+          '#quoteDoc .qfoot img{display:none!important;}',
+          '#quoteDoc .qfoot-note{font-size:8.5px!important;line-height:1.45!important;}',
+          '#quoteDoc .quote-visual{margin-bottom:8px!important;padding:8px!important;}',
+          '#quoteDoc .quote-visual img{max-height:220px!important;}'
         ].join('\n');
         clonedDoc.head.appendChild(style);
       }
@@ -1501,19 +1582,26 @@ function makeQuotePdfBlob() {
     var pdf = new jsPDF('p', 'mm', 'a4');
     var pageW = 210;
     var pageH = 297;
-    var margin = 10;
+    var margin = 7;
     var usableW = pageW - margin * 2;
     var usableH = pageH - margin * 2;
     var imgData = canvas.toDataURL('image/png');
-    var imgH = canvas.height * usableW / canvas.width;
+    var imgW = usableW;
+    var imgH = canvas.height * imgW / canvas.width;
+    if (imgH > usableH && imgH <= usableH * 1.12) {
+      var fitRatio = usableH / imgH;
+      imgW = imgW * fitRatio;
+      imgH = usableH;
+    }
+    var x = margin + (usableW - imgW) / 2;
     var y = margin;
 
-    pdf.addImage(imgData, 'PNG', margin, y, usableW, imgH, undefined, 'FAST');
+    pdf.addImage(imgData, 'PNG', x, y, imgW, imgH, undefined, 'FAST');
     var remaining = imgH - usableH;
     while (remaining > 0) {
       pdf.addPage();
       y = margin - (imgH - remaining);
-      pdf.addImage(imgData, 'PNG', margin, y, usableW, imgH, undefined, 'FAST');
+      pdf.addImage(imgData, 'PNG', x, y, imgW, imgH, undefined, 'FAST');
       remaining -= usableH;
     }
 
