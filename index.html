@@ -1189,6 +1189,7 @@ function libDel(el,e){ deleteQuote(el.dataset.id, e); }
 const EMAILJS_SERVICE_ID = "service_v3fqc75";
 const EMAILJS_TEMPLATE_ID = "template_65mxq6a";
 const EMAILJS_PUBLIC_KEY = "h-Bh91xBW8cIdY4T6";
+const EMAILJS_IMAGE_TARGET_CHARS = 43000;
 
 if (window.emailjs) {
   emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
@@ -1198,25 +1199,72 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
 
-function captureQuoteImage(options) {
-  var doc = document.getElementById('quoteDoc');
-  if (!doc) return Promise.reject(new Error('먼저 견적서를 생성해주세요'));
-  options = options || {};
-  var scale = options.scale || 1.5;
-  var quality = options.quality || 0.72;
+function getDataUrlSizeKb(dataUrl) {
+  return Math.round((String(dataUrl || '').length * 3 / 4) / 1024);
+}
+
+function renderQuoteTarget(target, scale) {
   return document.fonts.ready.then(function(){
-    return html2canvas(doc, {
+    return html2canvas(target, {
       scale: scale,
       useCORS: true,
       backgroundColor: '#ffffff',
-      logging: false
+      logging: false,
+      removeContainer: true
     });
-  }).then(function(canvas){
+  });
+}
+
+function pickCompressedJpeg(canvas, qualities) {
+  var best = null;
+  for (var i = 0; i < qualities.length; i++) {
+    var quality = qualities[i];
     var dataUrl = canvas.toDataURL('image/jpeg', quality);
-    if (dataUrl.length > 950000 && scale > 1.05) {
-      return captureQuoteImage({ scale: 1.05, quality: 0.58 });
+    var result = {
+      dataUrl: dataUrl,
+      quality: quality,
+      chars: dataUrl.length,
+      kb: getDataUrlSizeKb(dataUrl)
+    };
+    if (!best || result.chars < best.chars) best = result;
+    if (result.chars <= EMAILJS_IMAGE_TARGET_CHARS) return result;
+  }
+  return best;
+}
+
+function captureQuoteImage() {
+  var doc = document.getElementById('quoteDoc');
+  if (!doc) return Promise.reject(new Error('먼저 견적서를 생성해주세요'));
+
+  var body = doc.querySelector('.qbody') || doc;
+  var table = doc.querySelector('.qtbl') || body;
+  var attempts = [
+    { label: '전체 견적서', target: doc, scale: 0.52, qualities: [0.62, 0.54, 0.46, 0.38, 0.30] },
+    { label: '전체 견적서', target: doc, scale: 0.42, qualities: [0.52, 0.44, 0.36, 0.28, 0.22] },
+    { label: '견적서 본문', target: body, scale: 0.56, qualities: [0.58, 0.48, 0.38, 0.30, 0.24] },
+    { label: '품목/금액 표', target: table, scale: 0.72, qualities: [0.62, 0.52, 0.42, 0.34, 0.26] },
+    { label: '품목/금액 표', target: table, scale: 0.56, qualities: [0.48, 0.38, 0.30, 0.22, 0.16] }
+  ];
+
+  function tryAttempt(index, smallest) {
+    if (index >= attempts.length) {
+      if (smallest && smallest.chars <= 50000) return smallest;
+      return Promise.reject(new Error('견적 이미지가 EmailJS 50KB 제한을 초과했습니다. 현재 최소 ' + (smallest ? smallest.kb : '?') + 'KB입니다.'));
     }
-    return dataUrl;
+    var attempt = attempts[index];
+    return renderQuoteTarget(attempt.target, attempt.scale).then(function(canvas){
+      var result = pickCompressedJpeg(canvas, attempt.qualities);
+      result.label = attempt.label;
+      result.scale = attempt.scale;
+      if (!smallest || result.chars < smallest.chars) smallest = result;
+      if (result.chars <= EMAILJS_IMAGE_TARGET_CHARS) return result;
+      return tryAttempt(index + 1, smallest);
+    });
+  }
+
+  return tryAttempt(0, null).then(function(result){
+    showToast('견적 이미지 ' + result.kb + 'KB로 압축 후 발송합니다', 'success');
+    return result.dataUrl;
   });
 }
 
@@ -1261,7 +1309,7 @@ document.getElementById('btnEmail').addEventListener('click', function(){
   btn.disabled = true;
   btn.textContent = '발송 중...';
 
-  captureQuoteImage({ scale: 1.35, quality: 0.7 }).then(function(quoteImage){
+  captureQuoteImage().then(function(quoteImage){
     return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
       to_email: toEmail,
       customer_name: customer,
