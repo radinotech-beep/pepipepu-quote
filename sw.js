@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v12-mobile-ui-quote-polish';
+const CACHE = 'pepipepu-v14-mail-button-visible';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));

@@ -49,8 +49,8 @@
 body{font-family:'Noto Sans KR',sans-serif;background:#eef3f2;color:var(--text);min-height:100vh}
 
 /* 레이아웃 */
-.app{display:grid;grid-template-columns:420px 1fr;min-height:100vh}
-@media(max-width:960px){.app{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
+.app{display:grid;grid-template-columns:minmax(360px,420px) minmax(360px,1fr);min-height:100vh}
+@media(max-width:768px){.app{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
 
 /* ── 모바일 완전 최적화 ── */
 @media(max-width:768px){
@@ -512,6 +512,46 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 .qfoot{border-top:1px solid #eee7dc}
 .quote-visual{border-color:#dfd4c4;background:#fbf8f2}
 .quote-visual-title{color:#182c46}
+
+@media(min-width:769px) and (max-width:1180px){
+  .toolbar{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:8px;
+    padding:.75rem 1rem;
+  }
+  .toolbar-btns{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+  }
+  .tbtn{
+    justify-content:center;
+    min-height:38px;
+    border-radius:8px;
+    font-weight:700;
+  }
+  #btnEmail{display:none}
+  .mobile-email-cta{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    width:calc(100% - 2rem);
+    margin:.25rem 1rem 1rem;
+    min-height:48px;
+    border:0;
+    border-radius:10px;
+    background:#1f78ff;
+    color:#fff;
+    font-family:inherit;
+    font-size:15px;
+    font-weight:900;
+    box-shadow:0 8px 18px rgba(31,120,255,.25);
+  }
+  .mobile-email-cta svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2}
+}
 
 @media(max-width:768px){
   .main{background:#eef3f2}
