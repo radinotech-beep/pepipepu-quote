@@ -596,10 +596,10 @@ input.qty-num[type=number]{-moz-appearance:textfield}
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         PNG 저장
       </button>
-      <label class="email-toggle" title="켜면 견적 이미지를 압축해서 함께 보냅니다">
+      <label class="email-toggle" title="켜면 견적서 안에 앵글선반 정면 배치도를 포함합니다">
         <input type="checkbox" id="emailAttachImage">
         <span class="switch" aria-hidden="true"></span>
-        견적 이미지 첨부
+        배치도 포함
       </label>
       <button class="tbtn primary" id="btnEmail">
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>
@@ -982,6 +982,11 @@ function calcDiscount(){
 document.getElementById('iDiscPct').addEventListener('input',function(){calcDiscount();updateBanner();});
 document.getElementById('iDiscAmt').addEventListener('input',function(){calcDiscount();updateBanner();});
 
+document.getElementById('emailAttachImage').addEventListener('change', function(){
+  if(document.getElementById('quoteDoc')){
+    document.getElementById('genBtn').click();
+  }
+});
 
 // 견적서 생성
 document.getElementById('genBtn').addEventListener('click',function(){
@@ -1004,7 +1009,8 @@ document.getElementById('genBtn').addEventListener('click',function(){
   var tSup=items.reduce(function(a,it){return a+sup(it.vatPer)*it.qty;},0)+optionItems.reduce(function(a,o){return a+sup(o.price)*o.qty;},0);
   var tTax=items.reduce(function(a,it){return a+tx(it.vatPer)*it.qty;},0)+optionItems.reduce(function(a,o){return a+tx(o.price)*o.qty;},0);
   var discPct=disc>0?(disc/sub*100).toFixed(1)+'%':'';
-  var visualPng=window.getAngleVisualizerImage?window.getAngleVisualizerImage():'';
+  var includeVisual=!!(document.getElementById('emailAttachImage') && document.getElementById('emailAttachImage').checked);
+  var visualPng=includeVisual&&window.getAngleVisualizerImage?window.getAngleVisualizerImage():'';
   var visualBlock=visualPng?'<div class="quote-visual"><div class="quote-visual-title">앵글선반 정면 배치도</div><img src="'+visualPng+'" alt="앵글선반 정면 배치도"></div>':'';
 
   var itemRows=items.map(function(it){
@@ -1279,19 +1285,13 @@ function captureQuoteImage() {
   });
 }
 
-function buildEmailMessage(customer, attachImage) {
-  var imageLine = attachImage
-    ? '요청하신 앵글선반 견적서를 아래 이미지로 전달드립니다.'
-    : '요청하신 앵글선반 견적 내용을 전달드립니다.';
+function buildEmailMessage(customer) {
   return [
     customer + ' 귀하',
     '',
     '안녕하세요. (주) 페피페푸입니다.',
-    imageLine,
-    '검토 후 문의사항이 있으시면 편하게 연락 부탁드립니다.',
-    '',
-    '감사합니다.',
-    '(주) 페피페푸'
+    '요청하신 앵글선반 견적서를 아래 이미지로 전달드립니다.',
+    '검토 후 문의사항이 있으시면 편하게 연락 부탁드립니다.'
   ].join('\n');
 }
 
@@ -1300,7 +1300,6 @@ document.getElementById('btnEmail').addEventListener('click', function(){
   var orig = btn.innerHTML;
   var customer = (document.getElementById('iCustomer').value || '').trim();
   var toEmail = (document.getElementById('iCustomerEmail').value || '').trim();
-  var attachImage = !!(document.getElementById('emailAttachImage') && document.getElementById('emailAttachImage').checked);
 
   if (!customer) {
     showToast('고객명 / 업체명을 입력해주세요', 'error');
@@ -1324,11 +1323,11 @@ document.getElementById('btnEmail').addEventListener('click', function(){
   btn.disabled = true;
   btn.textContent = '발송 중...';
 
-  (attachImage ? captureQuoteImage() : Promise.resolve('')).then(function(quoteImage){
+  captureQuoteImage().then(function(quoteImage){
     return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
       to_email: toEmail,
       customer_name: customer,
-      message: buildEmailMessage(customer, attachImage),
+      message: buildEmailMessage(customer),
       quote_image: quoteImage
     });
   }).then(function(){
