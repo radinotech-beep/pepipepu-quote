@@ -534,35 +534,12 @@ input.qty-num[type=number]{-moz-appearance:textfield}
     border-radius:8px;
     font-weight:700;
   }
-  #btnEmail{display:none}
-  .mobile-email-cta{
-    display:flex;
-    position:fixed;
-    left:1rem;
-    right:1rem;
-    bottom:76px;
-    z-index:360;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    width:auto;
-    margin:0;
-    min-height:48px;
-    border:0;
-    border-radius:10px;
-    background:#1f78ff;
-    color:#fff;
-    font-family:inherit;
-    font-size:15px;
-    font-weight:900;
-    box-shadow:0 8px 18px rgba(31,120,255,.25);
-  }
-  .mobile-email-cta svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2}
+  #btnEmail{display:flex}
 }
 
 @media(max-width:768px){
   .main{background:#eef3f2}
-  .main{padding-bottom:76px}
+  .main{padding-bottom:96px}
   .toolbar{
     align-items:flex-start;
     flex-direction:column;
@@ -600,29 +577,36 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   .visual-chip{font-size:10px;line-height:1.3}
   .preview-wrap{padding:.75rem .625rem .5rem}
   .preview-scroll{width:100%;max-width:100%;display:flex;justify-content:center;overflow:hidden}
-  .mobile-email-cta{
-    display:flex;
-    position:fixed;
-    left:.75rem;
-    right:.75rem;
-    bottom:76px;
-    z-index:360;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    width:auto;
+  .mobile-email-cta{display:none!important}
+  .bottom-fixed{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,.82fr) minmax(0,1.12fr);
+    gap:7px;
+    padding:.65rem .7rem calc(.65rem + env(safe-area-inset-bottom));
+    align-items:stretch;
+    z-index:900;
+  }
+  .bottom-fixed .gen-btn,
+  .bottom-fixed .save-btn,
+  .bottom-fixed .mail-fixed-btn{
+    width:100%;
+    min-width:0;
+    height:46px;
     margin:0;
-    min-height:48px;
-    border:0;
+    padding:0 7px;
     border-radius:10px;
+    font-size:13px;
+    white-space:nowrap;
+  }
+  .mail-fixed-btn{
     background:#1f78ff;
     color:#fff;
+    border:none;
     font-family:inherit;
-    font-size:15px;
     font-weight:900;
-    box-shadow:0 8px 18px rgba(31,120,255,.25);
+    cursor:pointer;
+    box-shadow:0 6px 14px rgba(31,120,255,.22);
   }
-  .mobile-email-cta svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2}
   #quoteDoc{
     width:100%!important;
     max-width:min(430px,calc(100vw - 20px))!important;
@@ -667,7 +651,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   .qfoot-note{font-size:9px;line-height:1.65}
 }
 @media(max-width:420px){
-  .main{padding-bottom:78px}
+  .main{padding-bottom:98px}
   .preview-wrap{padding:.6rem .35rem .4rem}
   #quoteDoc{max-width:calc(100vw - 12px)!important}
   .qh{padding:.9rem .8rem}
@@ -680,6 +664,10 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   .qtbl td.num{font-size:7.4px}
   .qtbl td.tax{font-size:7px}
   .qsum-final strong{font-size:18px}
+  .bottom-fixed{gap:5px;padding-left:.5rem;padding-right:.5rem}
+  .bottom-fixed .gen-btn,
+  .bottom-fixed .save-btn,
+  .bottom-fixed .mail-fixed-btn{font-size:12px;padding:0 4px}
 }
 </style>
 </head>
@@ -843,6 +831,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 <div class="bottom-fixed" id="bottomFixed" style="display:none">
   <button class="gen-btn" id="genBtnM" style="flex:1">📄 견적서 생성</button>
   <button class="save-btn" id="saveBtnM" style="flex:1">💾 저장</button>
+  <button class="mail-fixed-btn" id="btnEmailM">✉️ 메일 보내기</button>
 </div>
 
 <!-- 메인 -->
@@ -1706,7 +1695,7 @@ function initMobile(){
   var bf = document.getElementById('bottomFixed');
   var sb = document.getElementById('sidebarBtns');
   if(isMobile()){
-    bf.style.display = 'flex';
+    bf.style.display = 'grid';
     sb.style.display = 'none';
   } else {
     bf.style.display = 'none';
@@ -1732,6 +1721,9 @@ document.getElementById('genBtnM').addEventListener('click', function(){
 });
 document.getElementById('saveBtnM').addEventListener('click', function(){
   document.getElementById('saveBtn').click();
+});
+document.getElementById('btnEmailM').addEventListener('click', function(){
+  document.getElementById('btnEmail').click();
 });
 
 
