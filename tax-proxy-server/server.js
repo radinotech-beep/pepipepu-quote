@@ -17,8 +17,19 @@ const allowedOrigins = new Set([
 ]);
 
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} origin=${req.headers.origin || '-'}`);
+  const origin = req.headers.origin || '';
+  const requestHeaders = req.headers['access-control-request-headers'] || 'Content-Type';
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} origin=${origin || '-'}`);
+  if (!origin || allowedOrigins.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Vary', 'Origin');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', requestHeaders);
   res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
   next();
 });
 
