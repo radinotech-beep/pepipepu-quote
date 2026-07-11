@@ -1,4 +1,4 @@
-﻿const CACHE = 'pepipepu-v19-bolta-tax-invoice';
+﻿const CACHE = 'pepipepu-v20-library-tax-history';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
@@ -15,4 +15,5 @@ self.addEventListener('fetch', e => {
     caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./index.html')))
   );
 });
+
 

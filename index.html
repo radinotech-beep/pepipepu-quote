@@ -357,8 +357,12 @@ select option{color:var(--text)}
 .lib-card-btns{display:flex;gap:6px}
 .lib-btn{padding:5px 12px;border-radius:var(--rxs);font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;border:1.5px solid var(--g3);background:#fff;color:var(--text2);transition:all .12s;-webkit-tap-highlight-color:transparent}
 .lib-btn.load{border-color:var(--mint);color:var(--mint)}
+.lib-btn.tax{border-color:#2a7fff;color:#1f6fe5;background:#f3f8ff}
+.lib-btn.tax.issued{border-color:#1a7f5a;color:#1a7f5a;background:#eefaf5}
 .lib-btn.del{border-color:#eee;color:#ccc}
 .lib-btn.del:active{border-color:var(--red);color:var(--red)}
+.lib-issue-status{margin-top:7px;font-size:11px;line-height:1.45;color:#1a7f5a;background:#eefaf5;border:1px solid #c8eadc;border-radius:8px;padding:6px 8px}
+.lib-issue-status span{display:block;color:#55706b;font-size:10px;margin-top:1px;word-break:break-all}
 .lib-empty{text-align:center;padding:4rem 2rem;color:var(--g4)}
 .lib-empty-icon{font-size:48px;margin-bottom:1rem}
 .lib-empty p{font-size:14px;font-weight:500;margin-bottom:4px;color:var(--text2)}
@@ -1016,7 +1020,7 @@ var OPTIONS=[
   {cat:'보강대',name:'보강대 900mm',desc:'보강대 900',price:4300},
 ];
 
-var color='화이트', tier=2, items=[], optionItems=[];
+var color='화이트', tier=2, items=[], optionItems=[], currentQuoteId=null;
 function fmt(n){return String.fromCharCode(8361)+Math.round(n).toLocaleString('ko-KR');}
 function sup(v){return Math.round(v/1.1);}
 function tx(v){return v-sup(v);}
@@ -1447,6 +1451,7 @@ document.getElementById('saveBtn').addEventListener('click', function(){
   };
   try{
     localStorage.setItem(id, JSON.stringify(data));
+    currentQuoteId=id;
     // 인덱스 업데이트
     var idx=JSON.parse(localStorage.getItem('quote_index')||'[]');
     idx.unshift(id);
@@ -1473,6 +1478,37 @@ function updateBadge(){
   document.getElementById('libCount').textContent=valid.length+'건';
 }
 
+function formatDateTime(iso){
+  var d=new Date(iso);
+  if(isNaN(d.getTime())) return '';
+  return d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+function getStoredQuote(id){
+  try{
+    var raw=localStorage.getItem(id);
+    return raw?JSON.parse(raw):null;
+  }catch(e){ return null; }
+}
+
+function saveStoredQuote(q){
+  if(!q||!q.id) return;
+  localStorage.setItem(q.id, JSON.stringify(q));
+}
+
+function markTaxInvoiceIssued(quoteId, data){
+  if(!quoteId) return;
+  var q=getStoredQuote(quoteId);
+  if(!q) return;
+  q.taxInvoice={
+    issuedAt:new Date().toISOString(),
+    issuanceKey:data&&(data.issuanceKey||data.issueId||data.id||''),
+    clientReferenceId:data&&data.clientReferenceId||''
+  };
+  saveStoredQuote(q);
+  loadLibrary();
+}
+
 // ── 라이브러리 로드 ──────────────────────────────────
 function loadLibrary(){
   var el=document.getElementById('libContent');
@@ -1491,12 +1527,17 @@ function loadLibrary(){
     var saved=new Date(q.savedAt);
     var savedStr=(saved.getMonth()+1)+'월 '+saved.getDate()+'일 '+saved.getHours()+':'+String(saved.getMinutes()).padStart(2,'0');
     var dateStr=q.date?(function(){var p=q.date.split('-');return p[0]+'년 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일';})():'';
+    var taxIssued=q.taxInvoice&&q.taxInvoice.issuedAt;
+    var taxIssuedStr=taxIssued?formatDateTime(taxIssued):'';
+    var taxKey=q.taxInvoice&&(q.taxInvoice.issuanceKey||q.taxInvoice.issueId||q.taxInvoice.id);
     return '<div class="lib-card">'+
       '<div class="lib-card-top"><div class="lib-card-customer">'+q.customer+'</div><div class="lib-card-date">'+savedStr+' 저장</div></div>'+
       '<div class="lib-card-summary">📅 '+dateStr+'<br>📦 '+itemSum+optSum+(q.discount>0?' 💰 할인 ₩'+q.discount.toLocaleString():'')+'</div>'+
+      (taxIssued?'<div class="lib-issue-status">세금계산서 발행됨 · '+taxIssuedStr+(taxKey?'<span>발행번호 '+taxKey+'</span>':'')+'</div>':'')+
       '<div class="lib-card-bottom">'+
         '<div class="lib-card-total">₩'+q.finalTotal.toLocaleString('ko-KR')+'</div>'+
         '<div class="lib-card-btns">'+
+          '<button class="lib-btn tax '+(taxIssued?'issued':'')+'" data-id="'+q.id+'" onclick="libIssue(this,event)">'+(taxIssued?'재발행':'세금계산서')+'</button>'+
           '<button class="lib-btn load" data-id="'+q.id+'" onclick="libLoad(this)">불러오기</button>'+
           '<button class="lib-btn del" data-id="'+q.id+'" onclick="libDel(this,event)">삭제</button>'+
         '</div>'+
@@ -1510,6 +1551,7 @@ function loadQuote(id){
   var d=localStorage.getItem(id);
   if(!d){showToast('견적서를 찾을 수 없어요','error');return;}
   var q=JSON.parse(d);
+  currentQuoteId=q.id||id;
   items=q.items||[]; optionItems=q.optionItems||[];
   document.getElementById('iCustomer').value=q.customer==='(고객명 없음)'?'':q.customer;
   document.getElementById('iCustomerEmail').value=q.customerEmail || '';
@@ -1536,6 +1578,7 @@ function deleteQuote(id, e){
 
 function libLoad(el){ loadQuote(el.dataset.id); }
 function libDel(el,e){ deleteQuote(el.dataset.id, e); }
+function libIssue(el,e){ if(e) e.stopPropagation(); issueTaxInvoice(el, el.dataset.id); }
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
@@ -1866,27 +1909,33 @@ function getOrAskCustomerBizNo(customerName){
   return bizNo;
 }
 
-function buildTaxInvoicePayload(){
-  var customerName = (document.getElementById('iCustomer').value || '').trim();
+function buildTaxInvoicePayload(sourceQuote){
+  var sourceItems = sourceQuote ? (sourceQuote.items || []) : items;
+  var sourceOptions = sourceQuote ? (sourceQuote.optionItems || []) : optionItems;
+  var customerName = sourceQuote ? (sourceQuote.customer || '') : (document.getElementById('iCustomer').value || '').trim();
+  customerName = String(customerName || '').trim();
   if(!customerName){
-    document.getElementById('iCustomer').focus();
+    if(!sourceQuote) document.getElementById('iCustomer').focus();
     throw new Error('거래처명이 비어 있습니다');
   }
-  if(!items.length){
+  if(!sourceItems.length){
     throw new Error('견적 금액이 없습니다');
   }
   var suppliedBizNo = getOrAskCustomerBizNo(customerName);
   if(!suppliedBizNo) throw new Error('거래처 사업자번호가 필요합니다');
 
-  var email = (document.getElementById('iCustomerEmail').value || '').trim();
-  var discount = parseInt(document.getElementById('iDiscount').value, 10) || 0;
-  var finalTotal = Math.max(0, calcSub() - discount);
+  var email = sourceQuote ? (sourceQuote.customerEmail || '') : (document.getElementById('iCustomerEmail').value || '').trim();
+  email = String(email || '').trim();
+  var discount = sourceQuote ? (parseInt(sourceQuote.discount, 10) || 0) : (parseInt(document.getElementById('iDiscount').value, 10) || 0);
+  var finalTotal = sourceQuote && typeof sourceQuote.finalTotal === 'number'
+    ? Math.max(0, sourceQuote.finalTotal)
+    : Math.max(0, calcSub() - discount);
   var supplyCost = Math.round(finalTotal / 1.1);
   var tax = finalTotal - supplyCost;
   var today = new Date().toISOString().slice(0, 10);
-  var itemName = items.length === 1 && optionItems.length === 0
-    ? '앵글선반 W' + items[0].w + ' D' + items[0].d + ' H' + items[0].h + ' ' + items[0].tier + '단'
-    : '앵글선반 외 ' + (items.length + optionItems.length) + '건';
+  var itemName = sourceItems.length === 1 && sourceOptions.length === 0
+    ? '앵글선반 W' + sourceItems[0].w + ' D' + sourceItems[0].d + ' H' + sourceItems[0].h + ' ' + sourceItems[0].tier + '단'
+    : '앵글선반 외 ' + (sourceItems.length + sourceOptions.length) + '건';
 
   var manager = {};
   if(email) manager.email = email;
@@ -1920,17 +1969,23 @@ function buildTaxInvoicePayload(){
   };
 }
 
-function issueTaxInvoice(button){
+function issueTaxInvoice(button, quoteId){
   var original = button.innerHTML;
   var payload;
+  var sourceQuote = quoteId ? getStoredQuote(quoteId) : null;
+  if(quoteId && !sourceQuote){
+    showToast('저장된 견적서를 찾을 수 없습니다', 'error');
+    return;
+  }
   try {
-    payload = buildTaxInvoicePayload();
+    payload = buildTaxInvoicePayload(sourceQuote);
   } catch(err) {
     showToast(err.message || '세금계산서 발행 준비에 실패했습니다', 'error');
     return;
   }
 
-  if(!confirm('볼타 API로 세금계산서를 발행할까요?\n테스트 키에서는 실제 국세청 전송 없이 검증됩니다.')) return;
+  var confirmMsg = (sourceQuote ? sourceQuote.customer + ' 견적서의 ' : '') + '세금계산서를 볼타 API로 발행할까요?\n테스트 키에서는 실제 국세청 전송 없이 검증됩니다.';
+  if(!confirm(confirmMsg)) return;
 
   button.disabled = true;
   button.innerHTML = '발행 중...';
@@ -1948,6 +2003,8 @@ function issueTaxInvoice(button){
     });
   }).then(function(data){
     var key = data.issuanceKey || data.issueId || data.id || '';
+    var historyQuoteId = quoteId || currentQuoteId;
+    if(historyQuoteId) markTaxInvoiceIssued(historyQuoteId, data);
     showToast('세금계산서 발행 완료' + (key ? ': ' + key : ''), 'success');
     alert('세금계산서 발행 완료\n' + (key ? '발행번호: ' + key : '볼타 대시보드에서 결과를 확인하세요.'));
   }).catch(function(err){
