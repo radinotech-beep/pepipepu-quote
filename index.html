@@ -1832,7 +1832,9 @@ document.getElementById('btnEmailM').addEventListener('click', function(){
 
 
 
-var TAX_PROXY_URL = 'http://127.0.0.1:3000/issue-tax-invoice';
+var TAX_PROXY_URL = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
+  ? location.origin + '/issue-tax-invoice'
+  : 'http://127.0.0.1:3000/issue-tax-invoice';
 
 function cleanBizNo(value){
   return String(value || '').replace(/[^0-9]/g, '');

@@ -3,9 +3,11 @@
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
+const path = require('path');
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
+const appRoot = path.resolve(__dirname, '..');
 
 const allowedOrigins = new Set([
   'https://radinotech-beep.github.io',
@@ -78,6 +80,17 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, service: 'pepipepu-bolta-tax-proxy' });
 });
 
+app.use(express.static(appRoot, {
+  extensions: ['html'],
+  setHeaders(res) {
+    res.setHeader('Cache-Control', 'no-store');
+  }
+}));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(appRoot, 'index.html'));
+});
+
 app.post('/issue-tax-invoice', async (req, res) => {
   try {
     const apiKey = requiredEnv('BOLTA_API_KEY');
@@ -135,6 +148,6 @@ app.post('/issue-tax-invoice', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Pepipepu Bolta tax proxy is running at http://127.0.0.1:${port}`);
-  console.log('Keep this window open while issuing tax invoices from the quote app.');
+  console.log(`Pepipepu quote app is running at http://127.0.0.1:${port}`);
+  console.log('Open that address and keep this window open while issuing tax invoices.');
 });
