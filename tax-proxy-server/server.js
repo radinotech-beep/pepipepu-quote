@@ -44,7 +44,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 204
 }));
-app.use(express.json({ limit: '200kb' }));
+app.use(express.json({ limit: '12mb' }));
 
 function requiredEnv(name) {
   const value = process.env[name];
@@ -78,6 +78,106 @@ function validatePayload(body) {
 
 app.get('/health', (req, res) => {
   res.json({ ok: true, service: 'pepipepu-bolta-tax-proxy' });
+});
+
+function extractJsonObject(text) {
+  const raw = String(text || '').trim();
+  try { return JSON.parse(raw); } catch (_) {}
+  const match = raw.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('Claude 응답에서 JSON을 찾지 못했습니다.');
+  return JSON.parse(match[0]);
+}
+
+function normalizeBizRegResult(data) {
+  return {
+    business_number: String(data.business_number || '').replace(/[^0-9]/g, ''),
+    company_name: String(data.company_name || ''),
+    representative_name: String(data.representative_name || ''),
+    business_type: String(data.business_type || ''),
+    business_category: String(data.business_category || ''),
+    address: String(data.address || ''),
+    email: String(data.email || '')
+  };
+}
+
+app.post('/extract-bizreg', async (req, res) => {
+  try {
+    const apiKey = requiredEnv('ANTHROPIC_API_KEY');
+    const mediaType = String(req.body && req.body.mediaType || '').toLowerCase();
+    const imageBase64 = String(req.body && req.body.imageBase64 || '').replace(/^data:[^,]+,/, '');
+    const supportedTypes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']);
+    if (!supportedTypes.has(mediaType)) {
+      throw new Error('현재는 JPG, PNG, GIF, WebP, PDF 파일만 지원합니다.');
+    }
+    if (!imageBase64) throw new Error('사업자등록증 이미지가 비어 있습니다.');
+
+    const prompt = `사업자등록증 이미지에서 다음 정보를 추출해서 JSON으로만 반환하세요.
+다른 설명 없이 JSON만 출력하세요:
+{
+  "business_number": "사업자등록번호 (숫자만, 하이픈 없이)",
+  "company_name": "상호명",
+  "representative_name": "대표자명",
+  "business_type": "업태",
+  "business_category": "업종",
+  "address": "사업장 주소",
+  "email": "이메일 (있으면, 없으면 빈 문자열)"
+}
+정보가 이미지에서 확인되지 않으면 해당 필드를 빈 문자열로 두세요.`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        temperature: 0,
+        messages: [{
+          role: 'user',
+          content: [
+            mediaType === 'application/pdf'
+              ? {
+                  type: 'document',
+                  source: {
+                    type: 'base64',
+                    media_type: mediaType,
+                    data: imageBase64
+                  }
+                }
+              : {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: mediaType,
+                    data: imageBase64
+                  }
+                },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    const text = await response.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; }
+    catch (_) { data = { raw: text }; }
+    if (!response.ok) {
+      return res.status(response.status).json({
+        message: data.error && data.error.message || data.message || 'Claude Vision API request failed',
+        anthropicStatus: response.status
+      });
+    }
+
+    const answer = (data.content || []).map(part => part && part.text || '').join('\n').trim();
+    const parsed = normalizeBizRegResult(extractJsonObject(answer));
+    return res.json(parsed);
+  } catch (error) {
+    return res.status(400).json({ message: error.message || '사업자등록증 분석 요청을 처리하지 못했습니다.' });
+  }
 });
 
 app.use(express.static(appRoot, {

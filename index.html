@@ -372,6 +372,12 @@ select option{color:var(--text)}
 .save-btn{width:100%;padding:12px;background:linear-gradient(135deg,#2a7fff,#1a6fe0);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-family:inherit;font-weight:700;cursor:pointer;transition:all .15s;margin-top:6px;box-shadow:0 4px 12px rgba(42,127,255,0.2)}
 .save-btn:active{opacity:.85}
 .save-btn.saved{background:linear-gradient(135deg,#27ae60,#1e8449)}
+.biz-upload-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.biz-upload-btn{border:1.5px solid var(--mint);background:#f0faf8;color:var(--mint2);border-radius:var(--radius-xs);padding:10px 12px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.biz-upload-btn:disabled{opacity:.55;cursor:wait}
+.biz-status{font-size:11px;line-height:1.45;color:var(--text2);background:#fff;border:1px solid var(--gray2);border-radius:8px;padding:7px 9px;display:none}
+.biz-status.ok{display:block;color:#1a7f5a;background:#eefaf5;border-color:#c8eadc}
+.biz-status.err{display:block;color:var(--red);background:var(--red-lt);border-color:#f0c7c2}
 
 /* 토스트 */
 .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:500;z-index:9999;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap}
@@ -770,6 +776,18 @@ input.qty-num[type=number]{-moz-appearance:textfield}
     <p class="sec-title">고객 정보</p>
     <div class="sec-box" style="display:flex;flex-direction:column;gap:8px">
       <div class="fld"><span class="lbl">고객명 / 업체명</span><input type="text" class="ipt" id="iCustomer" placeholder="예) 홍길동 / (주)OOO"></div>
+      <div class="biz-upload-row">
+        <input type="file" id="bizRegFile" accept="image/*,application/pdf,.pdf" capture="environment" style="display:none">
+        <button type="button" class="biz-upload-btn" id="btnBizRegUpload">사업자등록증 업로드</button>
+        <div class="biz-status" id="bizRegStatus">정보를 확인하고 필요하면 수정해주세요.</div>
+      </div>
+      <div class="fld"><span class="lbl">사업자번호</span><input type="text" class="ipt" id="iCustomerBizNo" inputmode="numeric" placeholder="숫자 10자리"></div>
+      <div class="fld"><span class="lbl">대표자명</span><input type="text" class="ipt" id="iCustomerRep" placeholder="예) 김대표"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fld"><span class="lbl">업태</span><input type="text" class="ipt" id="iCustomerType" placeholder="예) 도소매"></div>
+        <div class="fld"><span class="lbl">업종</span><input type="text" class="ipt" id="iCustomerCategory" placeholder="예) 앵글선반"></div>
+      </div>
+      <div class="fld"><span class="lbl">사업장 주소</span><input type="text" class="ipt" id="iCustomerAddress" placeholder="사업자등록증 주소"></div>
       <div class="fld"><span class="lbl">거래처 이메일</span><input type="email" class="ipt" id="iCustomerEmail" placeholder="customer@example.com"></div>
       <div class="fld"><span class="lbl">발행일</span><input type="date" class="ipt" id="iDate"></div>
     </div>
@@ -1437,11 +1455,13 @@ function showToast(msg, type){
 document.getElementById('saveBtn').addEventListener('click', function(){
   if(!items.length){showToast('품목을 먼저 추가해주세요','error');return;}
   var customer=document.getElementById('iCustomer').value||'(고객명 없음)';
+  var customerProfile=saveCurrentCustomerProfile();
   var id='q_'+Date.now();
   var data={
     id:id,
     customer:customer,
     customerEmail:document.getElementById('iCustomerEmail').value || '',
+    customerProfile:customerProfile,
     date:document.getElementById('iDate').value,
     items:JSON.parse(JSON.stringify(items)),
     optionItems:JSON.parse(JSON.stringify(optionItems)),
@@ -1555,6 +1575,7 @@ function loadQuote(id){
   items=q.items||[]; optionItems=q.optionItems||[];
   document.getElementById('iCustomer').value=q.customer==='(고객명 없음)'?'':q.customer;
   document.getElementById('iCustomerEmail').value=q.customerEmail || '';
+  if(q.customerProfile) applyCustomerProfile(q.customerProfile);
   document.getElementById('iDate').value=q.date||'';
   document.getElementById('iDiscount').value=q.discount||0;
   renderItems(); renderOptList(); updateBanner();
@@ -1878,26 +1899,84 @@ document.getElementById('btnEmailM').addEventListener('click', function(){
 var TAX_PROXY_URL = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
   ? location.origin + '/issue-tax-invoice'
   : 'http://127.0.0.1:3000/issue-tax-invoice';
+var BIZREG_EXTRACT_URL = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
+  ? location.origin + '/extract-bizreg'
+  : 'http://127.0.0.1:3000/extract-bizreg';
+var CUSTOMER_PROFILE_KEY = 'pepipepu_customer_profiles';
 
 function cleanBizNo(value){
   return String(value || '').replace(/[^0-9]/g, '');
 }
 
-function getCustomerBizMap(){
-  try { return JSON.parse(localStorage.getItem('pepipepu_customer_biznos') || '{}'); }
+function getCustomerProfiles(){
+  var profiles={};
+  try { profiles = JSON.parse(localStorage.getItem(CUSTOMER_PROFILE_KEY) || '{}') || {}; }
   catch(e){ return {}; }
+  try{
+    var legacy=JSON.parse(localStorage.getItem('pepipepu_customer_biznos') || '{}') || {};
+    Object.keys(legacy).forEach(function(name){
+      if(!profiles[name]) profiles[name]={companyName:name,businessNumber:cleanBizNo(legacy[name])};
+    });
+  }catch(e){}
+  return profiles;
 }
 
-function saveCustomerBizNo(customerName, bizNo){
-  if(!customerName || !bizNo) return;
-  var map = getCustomerBizMap();
-  map[customerName] = bizNo;
-  localStorage.setItem('pepipepu_customer_biznos', JSON.stringify(map));
+function saveCustomerProfile(profile){
+  if(!profile || !profile.companyName) return;
+  var profiles=getCustomerProfiles();
+  profiles[profile.companyName]=profile;
+  localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(profiles));
+}
+
+function collectCustomerProfile(){
+  var company=(document.getElementById('iCustomer').value || '').trim();
+  return {
+    companyName: company,
+    businessNumber: cleanBizNo(document.getElementById('iCustomerBizNo').value),
+    representativeName: (document.getElementById('iCustomerRep').value || '').trim(),
+    businessType: (document.getElementById('iCustomerType').value || '').trim(),
+    businessCategory: (document.getElementById('iCustomerCategory').value || '').trim(),
+    address: (document.getElementById('iCustomerAddress').value || '').trim(),
+    email: (document.getElementById('iCustomerEmail').value || '').trim()
+  };
+}
+
+function applyCustomerProfile(profile){
+  if(!profile) return;
+  if(profile.companyName) document.getElementById('iCustomer').value=profile.companyName;
+  if(profile.businessNumber) document.getElementById('iCustomerBizNo').value=cleanBizNo(profile.businessNumber);
+  if(profile.representativeName) document.getElementById('iCustomerRep').value=profile.representativeName;
+  if(profile.businessType) document.getElementById('iCustomerType').value=profile.businessType;
+  if(profile.businessCategory) document.getElementById('iCustomerCategory').value=profile.businessCategory;
+  if(profile.address) document.getElementById('iCustomerAddress').value=profile.address;
+  if(profile.email) document.getElementById('iCustomerEmail').value=profile.email;
+}
+
+function saveCurrentCustomerProfile(){
+  var profile=collectCustomerProfile();
+  if(profile.companyName) saveCustomerProfile(profile);
+  return profile;
+}
+
+function loadCustomerProfileByName(name){
+  name=String(name||'').trim();
+  if(!name) return;
+  var profiles=getCustomerProfiles();
+  if(profiles[name]){
+    applyCustomerProfile(profiles[name]);
+    showBizStatus('저장된 거래처 정보를 불러왔습니다.', 'ok');
+  }
+}
+
+function showBizStatus(message, type){
+  var el=document.getElementById('bizRegStatus');
+  el.textContent=message;
+  el.className='biz-status '+(type||'');
 }
 
 function getOrAskCustomerBizNo(customerName){
-  var map = getCustomerBizMap();
-  var saved = cleanBizNo(map[customerName]);
+  var profile = collectCustomerProfile();
+  var saved = cleanBizNo(profile.businessNumber);
   var input = prompt('거래처 사업자번호 10자리를 입력하세요.\n예: 1234567890', saved || '');
   if(input === null) return '';
   var bizNo = cleanBizNo(input);
@@ -1905,9 +1984,93 @@ function getOrAskCustomerBizNo(customerName){
     showToast('사업자번호는 숫자 10자리여야 합니다', 'error');
     return '';
   }
-  saveCustomerBizNo(customerName, bizNo);
+  document.getElementById('iCustomerBizNo').value=bizNo;
+  profile.businessNumber=bizNo;
+  profile.companyName=customerName;
+  saveCustomerProfile(profile);
   return bizNo;
 }
+
+function normalizeBizExtract(data){
+  data=data||{};
+  return {
+    companyName: data.company_name || data.companyName || '',
+    businessNumber: cleanBizNo(data.business_number || data.businessNumber || ''),
+    representativeName: data.representative_name || data.representativeName || '',
+    businessType: data.business_type || data.businessType || '',
+    businessCategory: data.business_category || data.businessCategory || '',
+    address: data.address || '',
+    email: data.email || ''
+  };
+}
+
+function fileToBase64Payload(file){
+  return new Promise(function(resolve,reject){
+    var reader=new FileReader();
+    reader.onload=function(){
+      var result=String(reader.result||'');
+      var comma=result.indexOf(',');
+      resolve({
+        mediaType:file.type || 'image/jpeg',
+        imageBase64:comma>=0?result.slice(comma+1):result
+      });
+    };
+    reader.onerror=function(){ reject(new Error('파일을 읽지 못했습니다')); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function extractBizReg(file){
+  var btn=document.getElementById('btnBizRegUpload');
+  var original=btn.textContent;
+  btn.disabled=true;
+  btn.textContent='분석 중...';
+  showBizStatus('사업자등록증을 분석 중입니다. 잠시만 기다려주세요.', 'ok');
+  fileToBase64Payload(file).then(function(payload){
+    if(!/^image\//.test(payload.mediaType) && payload.mediaType !== 'application/pdf'){
+      throw new Error('현재는 JPG, PNG, PDF 같은 사업자등록증 파일만 지원합니다.');
+    }
+    return fetch(BIZREG_EXTRACT_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+  }).then(function(res){
+    return res.json().catch(function(){return {};}).then(function(data){
+      if(!res.ok) throw new Error(data.message || '사업자등록증 분석에 실패했습니다');
+      return data;
+    });
+  }).then(function(data){
+    var profile=normalizeBizExtract(data);
+    applyCustomerProfile(profile);
+    saveCurrentCustomerProfile();
+    showBizStatus('자동 입력 완료. 정보를 확인하고 필요하면 수정해주세요.', 'ok');
+    showToast('사업자등록증 정보를 입력했습니다', 'success');
+  }).catch(function(err){
+    var msg=err&&err.message?err.message:'사업자등록증 분석에 실패했습니다';
+    if(String(msg).indexOf('Failed to fetch')>=0) msg='중계서버가 실행되지 않았습니다. PC에서 서버를 먼저 실행해주세요.';
+    showBizStatus(msg, 'err');
+    showToast(msg, 'error');
+  }).finally(function(){
+    btn.disabled=false;
+    btn.textContent=original;
+    document.getElementById('bizRegFile').value='';
+  });
+}
+
+document.getElementById('btnBizRegUpload').addEventListener('click', function(){
+  document.getElementById('bizRegFile').click();
+});
+document.getElementById('bizRegFile').addEventListener('change', function(){
+  var file=this.files&&this.files[0];
+  if(file) extractBizReg(file);
+});
+document.getElementById('iCustomer').addEventListener('change', function(){
+  loadCustomerProfileByName(this.value);
+});
+['iCustomerBizNo','iCustomerRep','iCustomerType','iCustomerCategory','iCustomerAddress','iCustomerEmail'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', saveCurrentCustomerProfile);
+});
 
 function buildTaxInvoicePayload(sourceQuote){
   var sourceItems = sourceQuote ? (sourceQuote.items || []) : items;
@@ -1921,10 +2084,12 @@ function buildTaxInvoicePayload(sourceQuote){
   if(!sourceItems.length){
     throw new Error('견적 금액이 없습니다');
   }
-  var suppliedBizNo = getOrAskCustomerBizNo(customerName);
+  var profile = sourceQuote ? (sourceQuote.customerProfile || {}) : saveCurrentCustomerProfile();
+  profile.companyName = profile.companyName || customerName;
+  var suppliedBizNo = cleanBizNo(profile.businessNumber) || getOrAskCustomerBizNo(customerName);
   if(!suppliedBizNo) throw new Error('거래처 사업자번호가 필요합니다');
 
-  var email = sourceQuote ? (sourceQuote.customerEmail || '') : (document.getElementById('iCustomerEmail').value || '').trim();
+  var email = sourceQuote ? (profile.email || sourceQuote.customerEmail || '') : (profile.email || document.getElementById('iCustomerEmail').value || '').trim();
   email = String(email || '').trim();
   var discount = sourceQuote ? (parseInt(sourceQuote.discount, 10) || 0) : (parseInt(document.getElementById('iDiscount').value, 10) || 0);
   var finalTotal = sourceQuote && typeof sourceQuote.finalTotal === 'number'
@@ -1939,6 +2104,7 @@ function buildTaxInvoicePayload(sourceQuote){
 
   var manager = {};
   if(email) manager.email = email;
+  var businessTypeText = [profile.businessType, profile.businessCategory].filter(Boolean).join(' / ');
 
   return {
     date: today,
@@ -1947,7 +2113,9 @@ function buildTaxInvoicePayload(sourceQuote){
     supplied: {
       identificationNumber: suppliedBizNo,
       organizationName: customerName,
-      representativeName: customerName,
+      representativeName: profile.representativeName || customerName,
+      address: profile.address || null,
+      businessType: businessTypeText || null,
       managers: Object.keys(manager).length ? [manager] : []
     },
     items: [
