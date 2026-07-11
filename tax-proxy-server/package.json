@@ -1,0 +1,15 @@
+﻿{
+  "name": "pepipepu-bolta-tax-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local proxy server for issuing Bolta test tax invoices from the Pepipepu quote app.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.19.2"
+  }
+}

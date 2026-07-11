@@ -580,7 +580,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   .mobile-email-cta{display:none!important}
   .bottom-fixed{
     display:grid!important;
-    grid-template-columns:minmax(0,1fr) minmax(0,.82fr) minmax(0,1.12fr);
+    grid-template-columns:minmax(0,1fr) minmax(0,.82fr) minmax(0,1.12fr) minmax(0,1.18fr);
     gap:7px;
     padding:.65rem .7rem calc(.65rem + env(safe-area-inset-bottom));
     align-items:stretch;
@@ -588,7 +588,8 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   }
   .bottom-fixed .gen-btn,
   .bottom-fixed .save-btn,
-  .bottom-fixed .mail-fixed-btn{
+  .bottom-fixed .mail-fixed-btn,
+  .bottom-fixed .tax-fixed-btn{
     width:100%;
     min-width:0;
     height:46px;
@@ -606,6 +607,14 @@ input.qty-num[type=number]{-moz-appearance:textfield}
     font-weight:900;
     cursor:pointer;
     box-shadow:0 6px 14px rgba(31,120,255,.22);
+  }
+  .tax-fixed-btn{
+    background:#f4ecdf;
+    color:#1b2b40;
+    border:1px solid #d9c9b4;
+    font-family:inherit;
+    font-weight:900;
+    cursor:pointer;
   }
   #quoteDoc{
     width:100%!important;
@@ -667,7 +676,8 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   .bottom-fixed{gap:5px;padding-left:.5rem;padding-right:.5rem}
   .bottom-fixed .gen-btn,
   .bottom-fixed .save-btn,
-  .bottom-fixed .mail-fixed-btn{font-size:12px;padding:0 4px}
+  .bottom-fixed .mail-fixed-btn,
+  .bottom-fixed .tax-fixed-btn{font-size:11px;padding:0 3px}
 }
 
 /* quote-compact: keep PDF/preview from wasting a page on header/footer space */
@@ -889,6 +899,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   <button class="gen-btn" id="genBtnM" style="flex:1">📄 견적서 생성</button>
   <button class="save-btn" id="saveBtnM" style="flex:1">💾 저장</button>
   <button class="mail-fixed-btn" id="btnEmailM">✉️ 메일 보내기</button>
+  <button class="tax-fixed-btn" id="btnTaxM">세금계산서</button>
 </div>
 
 <!-- 메인 -->
@@ -912,6 +923,10 @@ input.qty-num[type=number]{-moz-appearance:textfield}
       <button class="tbtn primary" id="btnEmail">
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>
         메일 보내기
+      </button>
+      <button class="tbtn" id="btnTaxInvoice" title="거래 성사 후 볼타 API로 세금계산서를 발행합니다.">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><path d="M7 3h10a2 2 0 012 2v16l-3-2-3 2-3-2-3 2V5a2 2 0 012-2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+        세금계산서 발행
       </button>
       <button class="tbtn primary" id="btnExcel">
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
@@ -1814,6 +1829,147 @@ document.getElementById('btnEmailM').addEventListener('click', function(){
   document.getElementById('btnEmail').click();
 });
 
+
+
+
+var TAX_PROXY_URL = 'http://127.0.0.1:3000/issue-tax-invoice';
+
+function cleanBizNo(value){
+  return String(value || '').replace(/[^0-9]/g, '');
+}
+
+function getCustomerBizMap(){
+  try { return JSON.parse(localStorage.getItem('pepipepu_customer_biznos') || '{}'); }
+  catch(e){ return {}; }
+}
+
+function saveCustomerBizNo(customerName, bizNo){
+  if(!customerName || !bizNo) return;
+  var map = getCustomerBizMap();
+  map[customerName] = bizNo;
+  localStorage.setItem('pepipepu_customer_biznos', JSON.stringify(map));
+}
+
+function getOrAskCustomerBizNo(customerName){
+  var map = getCustomerBizMap();
+  var saved = cleanBizNo(map[customerName]);
+  var input = prompt('거래처 사업자번호 10자리를 입력하세요.\n예: 1234567890', saved || '');
+  if(input === null) return '';
+  var bizNo = cleanBizNo(input);
+  if(bizNo.length !== 10){
+    showToast('사업자번호는 숫자 10자리여야 합니다', 'error');
+    return '';
+  }
+  saveCustomerBizNo(customerName, bizNo);
+  return bizNo;
+}
+
+function buildTaxInvoicePayload(){
+  var customerName = (document.getElementById('iCustomer').value || '').trim();
+  if(!customerName){
+    document.getElementById('iCustomer').focus();
+    throw new Error('거래처명이 비어 있습니다');
+  }
+  if(!items.length){
+    throw new Error('견적 금액이 없습니다');
+  }
+  var suppliedBizNo = getOrAskCustomerBizNo(customerName);
+  if(!suppliedBizNo) throw new Error('거래처 사업자번호가 필요합니다');
+
+  var email = (document.getElementById('iCustomerEmail').value || '').trim();
+  var discount = parseInt(document.getElementById('iDiscount').value, 10) || 0;
+  var finalTotal = Math.max(0, calcSub() - discount);
+  var supplyCost = Math.round(finalTotal / 1.1);
+  var tax = finalTotal - supplyCost;
+  var today = new Date().toISOString().slice(0, 10);
+  var itemName = items.length === 1 && optionItems.length === 0
+    ? '앵글선반 W' + items[0].w + ' D' + items[0].d + ' H' + items[0].h + ' ' + items[0].tier + '단'
+    : '앵글선반 외 ' + (items.length + optionItems.length) + '건';
+
+  var manager = {};
+  if(email) manager.email = email;
+
+  return {
+    date: today,
+    purpose: 'RECEIPT',
+    taxType: 'TAXABLE',
+    supplied: {
+      identificationNumber: suppliedBizNo,
+      organizationName: customerName,
+      representativeName: customerName,
+      managers: Object.keys(manager).length ? [manager] : []
+    },
+    items: [
+      {
+        date: today,
+        name: itemName,
+        unitPrice: supplyCost,
+        quantity: 1,
+        supplyCost: supplyCost,
+        tax: tax
+      }
+    ],
+    quote: {
+      totalAmount: finalTotal,
+      supplyCost: supplyCost,
+      tax: tax,
+      customerName: customerName
+    }
+  };
+}
+
+function issueTaxInvoice(button){
+  var original = button.innerHTML;
+  var payload;
+  try {
+    payload = buildTaxInvoicePayload();
+  } catch(err) {
+    showToast(err.message || '세금계산서 발행 준비에 실패했습니다', 'error');
+    return;
+  }
+
+  if(!confirm('볼타 API로 세금계산서를 발행할까요?\n테스트 키에서는 실제 국세청 전송 없이 검증됩니다.')) return;
+
+  button.disabled = true;
+  button.innerHTML = '발행 중...';
+  fetch(TAX_PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(function(res){
+    return res.json().catch(function(){ return {}; }).then(function(data){
+      if(!res.ok){
+        var message = data.message || data.error || '세금계산서 발행에 실패했습니다';
+        throw new Error(message);
+      }
+      return data;
+    });
+  }).then(function(data){
+    var key = data.issuanceKey || data.issueId || data.id || '';
+    showToast('세금계산서 발행 완료' + (key ? ': ' + key : ''), 'success');
+    alert('세금계산서 발행 완료\n' + (key ? '발행번호: ' + key : '볼타 대시보드에서 결과를 확인하세요.'));
+  }).catch(function(err){
+    var msg = err && err.message ? err.message : '알 수 없는 오류';
+    if(String(msg).indexOf('Failed to fetch') >= 0 || String(msg).indexOf('NetworkError') >= 0){
+      msg = '중계서버가 실행되지 않았습니다. PC에서 서버를 먼저 실행해주세요.';
+    }
+    showToast(msg, 'error');
+    alert('세금계산서 발행 실패\n' + msg);
+  }).finally(function(){
+    button.disabled = false;
+    button.innerHTML = original;
+  });
+}
+
+document.getElementById('btnTaxInvoice').addEventListener('click', function(){
+  issueTaxInvoice(this);
+});
+var taxMobileBtn = document.getElementById('btnTaxM');
+if(taxMobileBtn){
+  taxMobileBtn.addEventListener('click', function(){
+    document.getElementById('btnTaxInvoice').click();
+  });
+}
 
 document.getElementById('btnExcel').addEventListener('click', function(){
   if(!items.length){showToast('먼저 품목을 추가해주세요','error');return;}
