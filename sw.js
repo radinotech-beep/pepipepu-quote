@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v23-cloud-run-api';
+const CACHE = 'pepipepu-v24-svg-rack-visualizer';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
