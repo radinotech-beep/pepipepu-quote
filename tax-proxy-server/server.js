@@ -44,7 +44,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   optionsSuccessStatus: 204
 }));
-app.use(express.json({ limit: '12mb' }));
+app.use(express.json({ limit: '30mb' }));
 
 function requiredEnv(name) {
   const value = process.env[name];

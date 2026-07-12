@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="견적기">
 <meta name="theme-color" content="#2ab49a">
@@ -2004,19 +2005,59 @@ function normalizeBizExtract(data){
   };
 }
 
-function fileToBase64Payload(file){
+function resizeImageFile(file){
   return new Promise(function(resolve,reject){
+    if(!/^image\//.test(file.type || '')) return resolve(null);
     var reader=new FileReader();
     reader.onload=function(){
-      var result=String(reader.result||'');
-      var comma=result.indexOf(',');
-      resolve({
-        mediaType:file.type || 'image/jpeg',
-        imageBase64:comma>=0?result.slice(comma+1):result
-      });
+      var img=new Image();
+      img.onload=function(){
+        var maxSide=1600;
+        var w=img.width, h=img.height;
+        var ratio=Math.min(1, maxSide/Math.max(w,h));
+        var canvas=document.createElement('canvas');
+        canvas.width=Math.max(1, Math.round(w*ratio));
+        canvas.height=Math.max(1, Math.round(h*ratio));
+        var ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        var qualities=[0.78,0.65,0.52,0.42];
+        var dataUrl='';
+        for(var i=0;i<qualities.length;i++){
+          dataUrl=canvas.toDataURL('image/jpeg', qualities[i]);
+          if(dataUrl.length < 6*1024*1024) break;
+        }
+        resolve({mediaType:'image/jpeg', dataUrl:dataUrl});
+      };
+      img.onerror=function(){ reject(new Error('이미지를 읽지 못했습니다')); };
+      img.src=String(reader.result||'');
     };
     reader.onerror=function(){ reject(new Error('파일을 읽지 못했습니다')); };
     reader.readAsDataURL(file);
+  });
+}
+
+function fileToBase64Payload(file){
+  return new Promise(function(resolve,reject){
+    resizeImageFile(file).then(function(resized){
+      if(resized){
+        var comma=resized.dataUrl.indexOf(',');
+        return resolve({
+          mediaType:resized.mediaType,
+          imageBase64:comma>=0?resized.dataUrl.slice(comma+1):resized.dataUrl
+        });
+      }
+      var reader=new FileReader();
+      reader.onload=function(){
+        var result=String(reader.result||'');
+        var comma=result.indexOf(',');
+        resolve({
+          mediaType:file.type || 'application/octet-stream',
+          imageBase64:comma>=0?result.slice(comma+1):result
+        });
+      };
+      reader.onerror=function(){ reject(new Error('파일을 읽지 못했습니다')); };
+      reader.readAsDataURL(file);
+    }).catch(reject);
   });
 }
 
