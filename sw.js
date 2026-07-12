@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v28-mixed-rack-colors';
+const CACHE = 'pepipepu-v29-larger-rack-visual';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
