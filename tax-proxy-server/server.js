@@ -18,11 +18,15 @@ const allowedOrigins = new Set([
   'null'
 ]);
 
+function isAllowedOrigin(origin) {
+  return !origin || allowedOrigins.has(origin);
+}
+
 app.use((req, res, next) => {
   const origin = req.headers.origin || '';
   const requestHeaders = req.headers['access-control-request-headers'] || 'Content-Type';
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} origin=${origin || '-'}`);
-  if (!origin || allowedOrigins.has(origin)) {
+  if (isAllowedOrigin(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin || '*');
     res.setHeader('Vary', 'Origin');
   }
@@ -37,8 +41,8 @@ app.use((req, res, next) => {
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
-    return callback(null, true);
+    if (isAllowedOrigin(origin)) return callback(null, true);
+    return callback(new Error(`CORS origin denied: ${origin}`));
   },
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -254,6 +258,11 @@ app.post('/issue-tax-invoice', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Pepipepu quote app is running at http://127.0.0.1:${port}`);
-  console.log('Open that address and keep this window open while issuing tax invoices.');
+  console.log(`Pepipepu tax proxy server is running on port ${port}`);
+  if (process.env.K_SERVICE) {
+    console.log('Cloud Run service is ready.');
+  } else {
+    console.log(`Pepipepu quote app is running at http://127.0.0.1:${port}`);
+    console.log('Open that address and keep this window open while issuing tax invoices.');
+  }
 });
