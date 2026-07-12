@@ -1897,12 +1897,12 @@ document.getElementById('btnEmailM').addEventListener('click', function(){
 
 
 
-var TAX_PROXY_URL = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
-  ? location.origin + '/issue-tax-invoice'
-  : 'http://127.0.0.1:3000/issue-tax-invoice';
-var BIZREG_EXTRACT_URL = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
-  ? location.origin + '/extract-bizreg'
-  : 'http://127.0.0.1:3000/extract-bizreg';
+var CLOUD_PROXY_ORIGIN = 'https://pepipepu-tax-server-6eoohuq57q-du.a.run.app';
+var LOCAL_PROXY_ORIGIN = (location.hostname === '127.0.0.1' || location.hostname === 'localhost')
+  ? location.origin
+  : CLOUD_PROXY_ORIGIN;
+var TAX_PROXY_URL = LOCAL_PROXY_ORIGIN + '/issue-tax-invoice';
+var BIZREG_EXTRACT_URL = LOCAL_PROXY_ORIGIN + '/extract-bizreg';
 var CUSTOMER_PROFILE_KEY = 'pepipepu_customer_profiles';
 
 function cleanBizNo(value){

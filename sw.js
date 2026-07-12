@@ -1,4 +1,4 @@
-﻿const CACHE = 'pepipepu-v22-mobile-ocr-compress';
+const CACHE = 'pepipepu-v23-cloud-run-api';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
