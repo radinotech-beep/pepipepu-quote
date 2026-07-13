@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v32-mirrored-posts';
+const CACHE = 'pepipepu-v33-reversed-posts';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
