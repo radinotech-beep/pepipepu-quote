@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v41-bottom-up-gap-pitch';
+const CACHE = 'pepipepu-v42-order-telegram-link';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));

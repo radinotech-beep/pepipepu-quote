@@ -360,6 +360,9 @@ select option{color:var(--text)}
 .lib-btn.load{border-color:var(--mint);color:var(--mint)}
 .lib-btn.tax{border-color:#2a7fff;color:#1f6fe5;background:#f3f8ff}
 .lib-btn.tax.issued{border-color:#1a7f5a;color:#1a7f5a;background:#eefaf5}
+.lib-btn.order{border-color:#9a6a18;color:#80510a;background:#fff8e8}
+.lib-btn.order.sent{border-color:#1a7f5a;color:#1a7f5a;background:#eefaf5}
+.lib-issue-status.order{color:#80510a;background:#fff8e8;border-color:#ead6a8}
 .lib-btn.del{border-color:#eee;color:#ccc}
 .lib-btn.del:active{border-color:var(--red);color:var(--red)}
 .lib-issue-status{margin-top:7px;font-size:11px;line-height:1.45;color:#1a7f5a;background:#eefaf5;border:1px solid #c8eadc;border-radius:8px;padding:6px 8px}
@@ -591,7 +594,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   .mobile-email-cta{display:none!important}
   .bottom-fixed{
     display:grid!important;
-    grid-template-columns:minmax(0,1fr) minmax(0,.82fr) minmax(0,1.12fr) minmax(0,1.18fr);
+    grid-template-columns:minmax(0,1fr) minmax(0,.78fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
     gap:7px;
     padding:.65rem .7rem calc(.65rem + env(safe-area-inset-bottom));
     align-items:stretch;
@@ -600,7 +603,8 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   .bottom-fixed .gen-btn,
   .bottom-fixed .save-btn,
   .bottom-fixed .mail-fixed-btn,
-  .bottom-fixed .tax-fixed-btn{
+  .bottom-fixed .tax-fixed-btn,
+  .bottom-fixed .order-fixed-btn{
     width:100%;
     min-width:0;
     height:46px;
@@ -623,6 +627,14 @@ input.qty-num[type=number]{-moz-appearance:textfield}
     background:#f4ecdf;
     color:#1b2b40;
     border:1px solid #d9c9b4;
+    font-family:inherit;
+    font-weight:900;
+    cursor:pointer;
+  }
+  .order-fixed-btn{
+    background:#fff8e8;
+    color:#80510a;
+    border:1px solid #e0c37f;
     font-family:inherit;
     font-weight:900;
     cursor:pointer;
@@ -688,7 +700,8 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   .bottom-fixed .gen-btn,
   .bottom-fixed .save-btn,
   .bottom-fixed .mail-fixed-btn,
-  .bottom-fixed .tax-fixed-btn{font-size:11px;padding:0 3px}
+  .bottom-fixed .tax-fixed-btn,
+  .bottom-fixed .order-fixed-btn{font-size:11px;padding:0 3px}
 }
 
 /* quote-compact: keep PDF/preview from wasting a page on header/footer space */
@@ -923,6 +936,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   <button class="save-btn" id="saveBtnM" style="flex:1">💾 저장</button>
   <button class="mail-fixed-btn" id="btnEmailM">✉️ 메일 보내기</button>
   <button class="tax-fixed-btn" id="btnTaxM">세금계산서</button>
+  <button class="order-fixed-btn" id="btnOrderM">발주 전송</button>
 </div>
 
 <!-- 메인 -->
@@ -950,6 +964,10 @@ input.qty-num[type=number]{-moz-appearance:textfield}
       <button class="tbtn" id="btnTaxInvoice" title="거래 성사 후 볼타 API로 세금계산서를 발행합니다.">
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><path d="M7 3h10a2 2 0 012 2v16l-3-2-3 2-3-2-3 2V5a2 2 0 012-2z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
         세금계산서 발행
+      </button>
+      <button class="tbtn" id="btnOrderSend" title="확정된 견적 데이터를 텔레그램 발주 시스템으로 전송합니다.">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><path d="M5 7h14"/><path d="M5 12h14"/><path d="M5 17h10"/><path d="M16 15l3 2-3 2"/></svg>
+        발주 전송
       </button>
       <button class="tbtn primary" id="btnExcel">
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
@@ -1517,6 +1535,19 @@ function saveStoredQuote(q){
   localStorage.setItem(q.id, JSON.stringify(q));
 }
 
+function markOrderSent(quoteId, data, payload){
+  if(!quoteId) return;
+  var q=getStoredQuote(quoteId);
+  if(!q) return;
+  q.orderSent={
+    sentAt:new Date().toISOString(),
+    messageId:data&&(data.messageId||data.message_id||''),
+    payload:payload||null
+  };
+  saveStoredQuote(q);
+  loadLibrary();
+}
+
 function markTaxInvoiceIssued(quoteId, data){
   if(!quoteId) return;
   var q=getStoredQuote(quoteId);
@@ -1551,14 +1582,18 @@ function loadLibrary(){
     var taxIssued=q.taxInvoice&&q.taxInvoice.issuedAt;
     var taxIssuedStr=taxIssued?formatDateTime(taxIssued):'';
     var taxKey=q.taxInvoice&&(q.taxInvoice.issuanceKey||q.taxInvoice.issueId||q.taxInvoice.id);
+    var orderSent=q.orderSent&&q.orderSent.sentAt;
+    var orderSentStr=orderSent?formatDateTime(orderSent):'';
     return '<div class="lib-card">'+
       '<div class="lib-card-top"><div class="lib-card-customer">'+q.customer+'</div><div class="lib-card-date">'+savedStr+' 저장</div></div>'+
       '<div class="lib-card-summary">📅 '+dateStr+'<br>📦 '+itemSum+optSum+(q.discount>0?' 💰 할인 ₩'+q.discount.toLocaleString():'')+'</div>'+
       (taxIssued?'<div class="lib-issue-status">세금계산서 발행됨 · '+taxIssuedStr+(taxKey?'<span>발행번호 '+taxKey+'</span>':'')+'</div>':'')+
+      (orderSent?'<div class="lib-issue-status order">발주 전송됨 · '+orderSentStr+'</div>':'')+
       '<div class="lib-card-bottom">'+
         '<div class="lib-card-total">₩'+q.finalTotal.toLocaleString('ko-KR')+'</div>'+
         '<div class="lib-card-btns">'+
           '<button class="lib-btn tax '+(taxIssued?'issued':'')+'" data-id="'+q.id+'" onclick="libIssue(this,event)">'+(taxIssued?'재발행':'세금계산서')+'</button>'+
+          '<button class="lib-btn order '+(orderSent?'sent':'')+'" data-id="'+q.id+'" onclick="libOrder(this,event)">'+(orderSent?'재전송':'발주 전송')+'</button>'+
           '<button class="lib-btn load" data-id="'+q.id+'" onclick="libLoad(this)">불러오기</button>'+
           '<button class="lib-btn del" data-id="'+q.id+'" onclick="libDel(this,event)">삭제</button>'+
         '</div>'+
@@ -1601,6 +1636,7 @@ function deleteQuote(id, e){
 function libLoad(el){ loadQuote(el.dataset.id); }
 function libDel(el,e){ deleteQuote(el.dataset.id, e); }
 function libIssue(el,e){ if(e) e.stopPropagation(); issueTaxInvoice(el, el.dataset.id); }
+function libOrder(el,e){ if(e) e.stopPropagation(); sendQuoteOrder(el, el.dataset.id); }
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
@@ -1903,6 +1939,7 @@ var LOCAL_PROXY_ORIGIN = (location.hostname === '127.0.0.1' || location.hostname
   : CLOUD_PROXY_ORIGIN;
 var TAX_PROXY_URL = LOCAL_PROXY_ORIGIN + '/issue-tax-invoice';
 var BIZREG_EXTRACT_URL = LOCAL_PROXY_ORIGIN + '/extract-bizreg';
+var ORDER_SEND_URL = LOCAL_PROXY_ORIGIN + '/send-order';
 var CUSTOMER_PROFILE_KEY = 'pepipepu_customer_profiles';
 
 function cleanBizNo(value){
@@ -2178,6 +2215,73 @@ function buildTaxInvoicePayload(sourceQuote){
   };
 }
 
+function quoteColorCode(value){
+  return String(value || '').indexOf('블랙') >= 0 ? 'BW' : 'WW';
+}
+
+function buildOrderPayload(sourceQuote){
+  var sourceItems = sourceQuote ? (sourceQuote.items || []) : items;
+  var customerName = sourceQuote ? (sourceQuote.customer || '') : (document.getElementById('iCustomer').value || '').trim();
+  customerName = String(customerName || '').trim();
+  if(!customerName || customerName === '(고객명 없음)') throw new Error('거래처명을 입력하거나 저장된 견적서를 선택해주세요');
+  if(!sourceItems.length) throw new Error('발주 전송할 품목이 없습니다');
+  return {
+    source: 'quote',
+    customer_name: customerName,
+    quote_id: sourceQuote && sourceQuote.id || currentQuoteId || '',
+    sent_at: new Date().toISOString(),
+    items: sourceItems.map(function(it){
+      return {
+        color: quoteColorCode(it.color),
+        width: Number(it.w) || 0,
+        depth: Number(it.d) || 0,
+        height: Number(it.h) || 0,
+        levels: Number(it.tier) || 0,
+        qty: Math.max(1, Number(it.qty) || 1)
+      };
+    })
+  };
+}
+
+function sendQuoteOrder(button, quoteId){
+  var original = button.innerHTML || button.textContent;
+  var historyQuoteId = quoteId || currentQuoteId || '';
+  var sourceQuote = historyQuoteId ? getStoredQuote(historyQuoteId) : null;
+  if(!sourceQuote){
+    showToast('발주 이력을 남기려면 먼저 견적서를 저장해주세요', 'error');
+    return;
+  }
+  var payload;
+  try { payload = buildOrderPayload(sourceQuote); }
+  catch(err){ showToast(err.message || '발주 전송 준비에 실패했습니다', 'error'); return; }
+  if(!confirm(sourceQuote.customer + ' 견적서를 발주 시스템으로 전송할까요?')) return;
+  button.disabled = true;
+  button.innerHTML = '전송 중...';
+  fetch(ORDER_SEND_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  }).then(function(res){
+    return res.json().catch(function(){return {};}).then(function(data){
+      if(!res.ok) throw new Error(data.message || data.error || '발주 전송에 실패했습니다');
+      return data;
+    });
+  }).then(function(data){
+    markOrderSent(historyQuoteId, data, payload);
+    showToast('발주 전송 완료', 'success');
+    alert('발주 전송 완료\n텔레그램 발주 시스템에서 수신 여부를 확인해주세요.');
+  }).catch(function(err){
+    var msg = err && err.message ? err.message : '알 수 없는 오류';
+    if(String(msg).indexOf('Failed to fetch') >= 0 || String(msg).indexOf('NetworkError') >= 0){
+      msg = '중계서버 연결에 실패했습니다. Cloud Run 서버 상태를 확인해주세요.';
+    }
+    showToast(msg, 'error');
+    alert('발주 전송 실패\n' + msg);
+  }).finally(function(){
+    button.disabled = false;
+    button.innerHTML = original;
+  });
+}
 function issueTaxInvoice(button, quoteId){
   var original = button.innerHTML;
   var payload;
@@ -2232,10 +2336,19 @@ function issueTaxInvoice(button, quoteId){
 document.getElementById('btnTaxInvoice').addEventListener('click', function(){
   issueTaxInvoice(this);
 });
+document.getElementById('btnOrderSend').addEventListener('click', function(){
+  sendQuoteOrder(this);
+});
 var taxMobileBtn = document.getElementById('btnTaxM');
 if(taxMobileBtn){
   taxMobileBtn.addEventListener('click', function(){
     document.getElementById('btnTaxInvoice').click();
+  });
+}
+var orderMobileBtn = document.getElementById('btnOrderM');
+if(orderMobileBtn){
+  orderMobileBtn.addEventListener('click', function(){
+    document.getElementById('btnOrderSend').click();
   });
 }
 
