@@ -1217,7 +1217,7 @@ document.getElementById('sDanWD').addEventListener('change',function(){
   var name='단추가 W'+w+'×D'+d+' ('+danColor+')';
   var existing=optionItems.find(function(o){return o.name===name;});
   if(existing){ existing.qty++; }
-  else{ optionItems.push({name:name,desc:'선반단 W'+w+'×D'+d+' 합판+받침앵글 ('+danColor+')',price:price,qty:1}); }
+  else{ optionItems.push({name:name,desc:'선반단 W'+w+'×D'+d+' 합판+받침앵글 ('+danColor+')',price:price,qty:1,color:danColor}); }
   renderOptList(); updateBanner();
   this.value='';
 });
@@ -1246,7 +1246,7 @@ document.getElementById('sOpt').addEventListener('change',function(){
   var opt=OPTIONS[+idx];
   var existing=optionItems.find(function(o){return o.name===opt.name;});
   if(existing){ existing.qty++; }
-  else{ optionItems.push({name:opt.name,desc:opt.desc,price:opt.price,qty:1}); }
+  else{ optionItems.push({name:opt.name,desc:opt.desc,price:opt.price,qty:1,color:color}); }
   renderOptList(); updateBanner();
   this.value='';
 });
@@ -2232,6 +2232,32 @@ function quoteColorCode(value){
   return String(value || '').indexOf('블랙') >= 0 ? 'BW' : 'WW';
 }
 
+function quoteOrderOptionCode(option){
+  var name = String(option && option.name || '').trim();
+  var desc = String(option && option.desc || '').trim();
+  var hasColor = Boolean(option && option.color);
+  var optColor = quoteColorCode(option && option.color || '');
+  var colorLetter = optColor === 'BW' ? 'B' : 'W';
+  var m;
+  if(name === '바퀴셋트') return '바퀴';
+  if(name === '조절좌') return '조절좌';
+  if(name === '후크') return '후크';
+  if(name === '높이절단') return '절단';
+  m = name.match(/^받침앵글\s*(\d+)mm$/);
+  if(m && hasColor) return '6P12' + colorLetter + String(Math.floor(Number(m[1]) / 10)).padStart(8, '0');
+  if(m) return '받침앵글' + m[1] + 'mm';
+  m = name.match(/^보강대\s*(\d+)mm$/);
+  if(m && hasColor) return '6P14' + colorLetter + String(Math.floor(Number(m[1]) / 10)).padStart(8, '0');
+  if(m) return '보강대' + m[1] + 'mm';
+  m = name.match(/^단추가\s*W(\d+)×D(\d+)/);
+  if(m && hasColor) return '6P03' + optColor + String(Math.floor(Number(m[1]) / 100)).padStart(2, '0') + String(Math.floor(Number(m[2]) / 100)).padStart(2, '0') + '001';
+  if(m) return '선반추가' + m[1] + 'x' + m[2];
+  m = desc.match(/선반단\s*W(\d+)×D(\d+)/);
+  if(m && hasColor) return '6P03' + optColor + String(Math.floor(Number(m[1]) / 100)).padStart(2, '0') + String(Math.floor(Number(m[2]) / 100)).padStart(2, '0') + '001';
+  if(m) return '선반추가' + m[1] + 'x' + m[2];
+  return name;
+}
+
 function requireOrderValue(value, message, fieldId, sourceQuote){
   value = String(value || '').trim();
   if(value) return value;
@@ -2245,6 +2271,7 @@ function requireOrderValue(value, message, fieldId, sourceQuote){
 
 function buildOrderPayload(sourceQuote){
   var sourceItems = sourceQuote ? (sourceQuote.items || []) : items;
+  var sourceOptions = sourceQuote ? (sourceQuote.optionItems || []) : optionItems;
   var customerName = sourceQuote ? (sourceQuote.customer || '') : (document.getElementById('iCustomer').value || '').trim();
   var profile = sourceQuote ? (sourceQuote.customerProfile || {}) : saveCurrentCustomerProfile();
   customerName = requireOrderValue(customerName, '고객명/업체명을 입력해주세요.', 'iCustomer', sourceQuote);
@@ -2253,6 +2280,27 @@ function buildOrderPayload(sourceQuote){
   var zipcode = requireOrderValue(profile.zipcode, '우편번호를 입력해주세요.', 'iCustomerZipcode', sourceQuote);
   var address = requireOrderValue(profile.address, '주소를 입력해주세요.', 'iCustomerAddress', sourceQuote);
   if(!sourceItems.length) throw new Error('발주 전송할 품목이 없습니다');
+  var orderItems = sourceItems.map(function(it){
+    return {
+      type: 'base',
+      color: quoteColorCode(it.color),
+      width: Number(it.w) || 0,
+      depth: Number(it.d) || 0,
+      height: Number(it.h) || 0,
+      levels: Number(it.tier) || 0,
+      qty: Math.max(1, Number(it.qty) || 1)
+    };
+  }).concat(sourceOptions.map(function(opt){
+    return {
+      type: 'option',
+      name: String(opt.name || ''),
+      desc: String(opt.desc || ''),
+      color: String(opt.color || ''),
+      option_code: quoteOrderOptionCode(opt),
+      qty: Math.max(1, Number(opt.qty) || 1),
+      price: Number(opt.price) || 0
+    };
+  }));
   return {
     source: 'quote',
     customer_name: customerName,
@@ -2263,16 +2311,7 @@ function buildOrderPayload(sourceQuote){
     delivery_memo: profile.deliveryMemo || profile.delivery_memo || '',
     quote_id: sourceQuote && sourceQuote.id || currentQuoteId || '',
     sent_at: new Date().toISOString(),
-    items: sourceItems.map(function(it){
-      return {
-        color: quoteColorCode(it.color),
-        width: Number(it.w) || 0,
-        depth: Number(it.d) || 0,
-        height: Number(it.h) || 0,
-        levels: Number(it.tier) || 0,
-        qty: Math.max(1, Number(it.qty) || 1)
-      };
-    })
+    items: orderItems
   };
 }
 
