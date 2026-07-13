@@ -230,6 +230,18 @@ select option{color:var(--text)}
 }
 .add-btn:hover{border-color:var(--mint);background:var(--mint-lt)}
 .empty-hint{font-size:12px;color:var(--gray4);text-align:center;padding:8px}
+.group-box{border:1px solid var(--mint-md);background:#f7fffd;border-radius:var(--radius-xs);padding:10px;display:flex;flex-direction:column;gap:8px}
+.group-switch{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:800;color:var(--text)}
+.group-switch input{width:18px;height:18px;accent-color:var(--mint)}
+.group-panel{display:none;flex-direction:column;gap:8px}
+.group-panel.on{display:flex}
+.group-tabs{display:flex;flex-direction:column;gap:7px}
+.group-row{display:grid;grid-template-columns:74px minmax(0,1fr);gap:7px;align-items:center}
+.group-tab{height:36px;border:1.5px solid var(--mint-md);border-radius:8px;background:#fff;color:var(--mint2);font-family:inherit;font-weight:800;cursor:pointer}
+.group-tab.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.group-alias{height:36px;border:1px solid var(--gray3);border-radius:8px;padding:0 10px;font-family:inherit;font-size:12px;background:#fff;min-width:0}
+.group-add{height:34px;border:1.5px dashed var(--mint-md);border-radius:8px;background:#fff;color:var(--mint2);font-family:inherit;font-weight:800;cursor:pointer}
+.group-badge{display:inline-flex;align-items:center;margin-right:5px;padding:2px 6px;border-radius:99px;background:#eef5ff;color:#1f6fe5;font-size:10px;font-weight:800;vertical-align:middle}
 
 /* 할인 */
 .discount-row{display:flex;gap:8px;align-items:center}
@@ -309,6 +321,9 @@ select option{color:var(--text)}
 .qtbl td.num{font-family:'Noto Sans KR',sans-serif;font-size:12px;text-align:right}
 .qtbl td.tax{color:#bbb;font-family:'Noto Sans KR',sans-serif;font-size:11px;text-align:right}
 .qtbl tr.sec-hd td{background:#f0f8f6;font-size:11px;font-weight:700;color:#1a7060;padding:5px 10px;border-bottom:none}
+.qtbl tr.group-hd td{background:#eef5ff!important;color:#1d3656!important;font-size:11.5px;font-weight:900;text-align:left;border-top:9px solid #fff;border-bottom:1px solid #d6e6ff;padding:7px 10px}
+.qtbl tr.group-sub td{background:#f8f1e6!important;color:#1d3656;font-weight:900;border-bottom:1px solid #e2d4bf}
+.qtbl tr.group-sub td:first-child{text-align:left;font-size:11px}
 .qtbl tr.free-row td{background:var(--green-lt);color:var(--green);font-weight:700;text-align:center}
 .qtbl tr.sub-row td{background:#f8f9fb;font-weight:500}
 .qtbl tr.disc-row td{background:var(--orange-lt);color:var(--orange);font-weight:700}
@@ -502,7 +517,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   color:#25303d;
   line-height:1.45;
 }
-.qtbl tbody tr:nth-child(even):not(.sec-hd):not(.fin-row):not(.disc-row):not(.sub-row){background:#fcfbf8}
+.qtbl tbody tr:nth-child(even):not(.sec-hd):not(.fin-row):not(.disc-row):not(.sub-row):not(.group-hd):not(.group-sub){background:#fcfbf8}
 .qtbl td:first-child{font-size:10.5px;color:#1f2c3b}
 .qtbl td.spec{font-size:10.5px;color:#69717c;word-break:keep-all}
 .qtbl tr.sec-hd td{background:#f7efe4;color:#1d3656;font-size:11.5px;padding:7px 10px}
@@ -812,6 +827,17 @@ input.qty-num[type=number]{-moz-appearance:textfield}
     </div>
   </div>
 
+  <div class="group-box">
+    <label class="group-switch">
+      <span>그룹 사용</span>
+      <input type="checkbox" id="useGroups">
+    </label>
+    <div class="group-panel" id="groupPanel">
+      <div class="group-tabs" id="groupTabs"></div>
+      <button type="button" class="group-add" id="addGroupBtn">+ 그룹 추가</button>
+    </div>
+  </div>
+
   <!-- 품목 입력 -->
   <div>
     <p class="sec-title">품목 추가</p>
@@ -1063,9 +1089,57 @@ var OPTIONS=[
 ];
 
 var color='화이트', tier=2, items=[], optionItems=[], currentQuoteId=null;
+var useGroups=false, groups=[], activeGroupId='';
 function fmt(n){return String.fromCharCode(8361)+Math.round(n).toLocaleString('ko-KR');}
 function sup(v){return Math.round(v/1.1);}
 function tx(v){return v-sup(v);}
+function groupCode(n){var s='', x=n; do{s=String.fromCharCode(65+(x%26))+s; x=Math.floor(x/26)-1;}while(x>=0); return s;}
+function makeGroup(){
+  var id='grp_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+  var g={id:id,code:groupCode(groups.length),alias:''};
+  groups.push(g); activeGroupId=id; return g;
+}
+function ensureGroup(){
+  if(!useGroups) return '';
+  if(!groups.length) makeGroup();
+  if(!activeGroupId || !groups.some(function(g){return g.id===activeGroupId;})) activeGroupId=groups[0].id;
+  return activeGroupId;
+}
+function getActiveGroupId(){return useGroups?ensureGroup():'';}
+function groupInfo(id, list){
+  var arr=list||groups;
+  var g=arr.find(function(x){return x.id===id;});
+  if(!g) return null;
+  return {id:g.id,code:g.code||'',alias:g.alias||'',label:(g.code||'')+'그룹'+(g.alias?' — '+g.alias:'')};
+}
+function groupBadge(id){
+  if(!useGroups || !id) return '';
+  var g=groupInfo(id);
+  return g?'<span class="group-badge">'+g.label+'</span>':'';
+}
+function renderGroupControls(){
+  var chk=document.getElementById('useGroups'), panel=document.getElementById('groupPanel'), tabs=document.getElementById('groupTabs');
+  if(!chk || !panel || !tabs) return;
+  chk.checked=!!useGroups;
+  panel.classList.toggle('on', !!useGroups);
+  if(useGroups) ensureGroup();
+  tabs.innerHTML=groups.map(function(g){
+    return '<div class="group-row">'+
+      '<button type="button" class="group-tab '+(g.id===activeGroupId?'on':'')+'" data-gid="'+g.id+'">'+(g.code||'')+'그룹</button>'+
+      '<input class="group-alias" data-gid="'+g.id+'" value="'+(g.alias||'').replace(/"/g,'&quot;')+'" placeholder="별칭 선택 입력">'+
+    '</div>';
+  }).join('');
+  tabs.querySelectorAll('.group-tab').forEach(function(btn){
+    btn.addEventListener('click',function(){activeGroupId=this.dataset.gid;renderGroupControls();});
+  });
+  tabs.querySelectorAll('.group-alias').forEach(function(inp){
+    inp.addEventListener('input',function(){
+      var g=groups.find(function(x){return x.id===inp.dataset.gid;});
+      if(g) g.alias=inp.value.trim();
+      renderItems(); renderOptList();
+    });
+  });
+}
 
 // W×D 콤보 초기화
 (function(){
@@ -1114,6 +1188,18 @@ document.querySelectorAll('#segT button').forEach(function(btn){
 });
 document.querySelector('#segT button[data-t="2"]').classList.add('on');
 
+document.getElementById('useGroups').addEventListener('change',function(){
+  useGroups=!!this.checked;
+  if(useGroups) ensureGroup();
+  renderGroupControls(); renderItems(); renderOptList();
+});
+document.getElementById('addGroupBtn').addEventListener('click',function(){
+  useGroups=true;
+  makeGroup();
+  renderGroupControls(); renderItems(); renderOptList();
+});
+renderGroupControls();
+
 // 품목 추가
 document.getElementById('addBtn').addEventListener('click',function(){
   var wd=document.getElementById('sWD').value;
@@ -1126,7 +1212,7 @@ document.getElementById('addBtn').addEventListener('click',function(){
   var base=P[w][d][h];
   var taP=(tier>2&&TA[w]&&TA[w][d])?TA[w][d]:0;
   var vatPer=base+taP*(tier-2);
-  items.push({w:+w,d:+d,h:+h,tier:tier,color:color,qty:qty,vatPer:vatPer,base:base,taP:taP});
+  items.push({w:+w,d:+d,h:+h,tier:tier,color:color,qty:qty,vatPer:vatPer,base:base,taP:taP,groupId:getActiveGroupId()});
   renderItems(); updateBanner();
 });
 
@@ -1137,7 +1223,7 @@ function renderItems(){
   cnt.textContent=items.length+'개';
   el.innerHTML=items.map(function(it,i){
     return '<div class="item-row">'+
-      '<div class="ispec">'+it.color+' W'+it.w+'×D'+it.d+'×H'+it.h+' '+it.tier+'단</div>'+
+      '<div class="ispec">'+groupBadge(it.groupId)+it.color+' W'+it.w+'×D'+it.d+'×H'+it.h+' '+it.tier+'단</div>'+
       '<div class="qty-ctrl">'+
         '<button class="qty-btn" data-i="'+i+'" data-act="item-dec">−</button>'+
         '<input class="qty-num" type="number" min="1" max="99" value="'+it.qty+'" data-i="'+i+'" data-type="item">'+
@@ -1215,9 +1301,10 @@ document.getElementById('sDanWD').addEventListener('change',function(){
   var p=v.split('x'), w=+p[0], d=+p[1];
   var price=TA[w][d];
   var name='단추가 W'+w+'×D'+d+' ('+danColor+')';
-  var existing=optionItems.find(function(o){return o.name===name;});
+  var groupId=getActiveGroupId();
+  var existing=optionItems.find(function(o){return o.name===name && (o.groupId||'')===groupId;});
   if(existing){ existing.qty++; }
-  else{ optionItems.push({name:name,desc:'선반단 W'+w+'×D'+d+' 합판+받침앵글 ('+danColor+')',price:price,qty:1,color:danColor}); }
+  else{ optionItems.push({name:name,desc:'선반단 W'+w+'×D'+d+' 합판+받침앵글 ('+danColor+')',price:price,qty:1,color:danColor,groupId:groupId}); }
   renderOptList(); updateBanner();
   this.value='';
 });
@@ -1244,9 +1331,10 @@ document.getElementById('sOpt').addEventListener('change',function(){
   var idx=this.value;
   if(idx==='') return;
   var opt=OPTIONS[+idx];
-  var existing=optionItems.find(function(o){return o.name===opt.name;});
+  var groupId=getActiveGroupId();
+  var existing=optionItems.find(function(o){return o.name===opt.name && (o.groupId||'')===groupId;});
   if(existing){ existing.qty++; }
-  else{ optionItems.push({name:opt.name,desc:opt.desc,price:opt.price,qty:1,color:color}); }
+  else{ optionItems.push({name:opt.name,desc:opt.desc,price:opt.price,qty:1,color:color,groupId:groupId}); }
   renderOptList(); updateBanner();
   this.value='';
 });
@@ -1256,7 +1344,7 @@ function renderOptList(){
   if(optionItems.length===0){el.innerHTML='<div class="empty-hint">옵션을 추가해주세요</div>';return;}
   el.innerHTML=optionItems.map(function(it,i){
     return '<div class="item-row">'+
-      '<div class="ispec">'+it.name+'</div>'+
+      '<div class="ispec">'+groupBadge(it.groupId)+it.name+'</div>'+
       '<div class="qty-ctrl">'+
         '<button class="qty-btn" data-i="'+i+'" data-act="opt-dec">−</button>'+
         '<input class="qty-num" type="number" min="1" max="99" value="'+it.qty+'" data-i="'+i+'" data-type="opt">'+
@@ -1386,21 +1474,56 @@ document.getElementById('genBtn').addEventListener('click',function(){
   var visualPng=includeVisual&&window.getAngleVisualizerImage?window.getAngleVisualizerImage():'';
   var visualBlock=visualPng?'<div class="quote-visual"><div class="quote-visual-title">앵글선반 정면 배치도</div><img src="'+visualPng+'" alt="앵글선반 정면 배치도"></div>':'';
 
-  var itemRows=items.map(function(it){
+  function baseRow(it){
     var sp=sup(it.vatPer),t=tx(it.vatPer);
-    return '<tr><td>앵글선반</td><td class="spec">W'+it.w+'×D'+it.d+'×H'+it.h+'×'+it.tier+'단 ('+it.color+')</td>'+
-      '<td>'+it.qty+'</td><td class="num">'+fmt(sp)+'</td><td class="num">'+fmt(sp*it.qty)+'</td><td class="tax">'+fmt(t*it.qty)+'</td></tr>';
-  }).join('');
-
-  var optRows='';
-  if(optionItems.length>0){
-    optRows='<tr class="sec-hd"><td colspan="6">옵션 항목</td></tr>';
-    optRows+=optionItems.map(function(o){
-      return '<tr><td>'+o.name+'</td><td class="spec">'+o.desc+'</td>'+
-        '<td>'+o.qty+'</td><td class="num">'+fmt(sup(o.price))+'</td>'+
-        '<td class="num">'+fmt(sup(o.price)*o.qty)+'</td><td class="tax">'+fmt(tx(o.price)*o.qty)+'</td></tr>';
-    }).join('');
+    return {
+      groupId:it.groupId||'',
+      amount:it.vatPer*it.qty,
+      html:'<tr><td>앵글선반</td><td class="spec">W'+it.w+'×D'+it.d+'×H'+it.h+'×'+it.tier+'단 ('+it.color+')</td>'+
+        '<td>'+it.qty+'</td><td class="num">'+fmt(sp)+'</td><td class="num">'+fmt(sp*it.qty)+'</td><td class="tax">'+fmt(t*it.qty)+'</td></tr>'
+    };
   }
+  function optionRow(o){
+    return {
+      groupId:o.groupId||'',
+      amount:o.price*o.qty,
+      html:'<tr><td>'+o.name+'</td><td class="spec">'+o.desc+'</td>'+
+        '<td>'+o.qty+'</td><td class="num">'+fmt(sup(o.price))+'</td>'+
+        '<td class="num">'+fmt(sup(o.price)*o.qty)+'</td><td class="tax">'+fmt(tx(o.price)*o.qty)+'</td></tr>'
+    };
+  }
+  function buildGroupedRows(){
+    var rows=items.map(baseRow).concat(optionItems.map(optionRow));
+    if(!useGroups){
+      var baseRows=items.map(baseRow).map(function(r){return r.html;}).join('');
+      var optRows='';
+      if(optionItems.length>0){
+        optRows='<tr class="sec-hd"><td colspan="6">옵션 항목</td></tr>'+
+          optionItems.map(optionRow).map(function(r){return r.html;}).join('');
+      }
+      return baseRows+optRows;
+    }
+    var html='';
+    var used={};
+    groups.forEach(function(g){
+      var groupRows=rows.filter(function(r){return r.groupId===g.id;});
+      if(!groupRows.length) return;
+      used[g.id]=true;
+      var total=groupRows.reduce(function(a,r){return a+r.amount;},0);
+      html+='<tr class="group-hd"><td colspan="6">'+groupInfo(g.id).label+'</td></tr>'+
+        groupRows.map(function(r){return r.html;}).join('')+
+        '<tr class="group-sub"><td colspan="4">소계</td><td class="num" colspan="2">'+fmt(total)+'</td></tr>';
+    });
+    var loose=rows.filter(function(r){return !r.groupId || !used[r.groupId];});
+    if(loose.length){
+      var looseTotal=loose.reduce(function(a,r){return a+r.amount;},0);
+      html+='<tr class="group-hd"><td colspan="6">그룹 없음</td></tr>'+
+        loose.map(function(r){return r.html;}).join('')+
+        '<tr class="group-sub"><td colspan="4">소계</td><td class="num" colspan="2">'+fmt(looseTotal)+'</td></tr>';
+    }
+    return html;
+  }
+  var quoteRows=buildGroupedRows();
 
   var subRow=disc>0?'<tr class="sub-row"><td colspan="3" style="text-align:center;font-weight:500">소  계</td><td></td><td class="num">'+fmt(tSup)+'</td><td class="tax">'+fmt(tTax)+'</td></tr>':'';
   var discRow=disc>0?'<tr class="disc-row"><td colspan="4" style="text-align:center">특별 할인 ('+discPct+')</td><td class="num" colspan="2" style="text-align:right;padding-right:10px">- '+fmt(disc)+'</td></tr>':'';
@@ -1428,7 +1551,7 @@ document.getElementById('genBtn').addEventListener('click',function(){
       '<table class="qtbl">'+
         '<thead><tr><th style="width:14%">품명</th><th style="width:30%">규격</th><th style="width:6%">수량</th>'+
         '<th style="width:16%;text-align:right">단가</th><th style="width:17%;text-align:right">공급가</th><th style="width:17%;text-align:right">세액</th></tr></thead>'+
-        '<tbody>'+itemRows+optRows+subRow+discRow+
+        '<tbody>'+quoteRows+subRow+discRow+
           '<tr class="fin-row"><td colspan="4" style="text-align:center">최종 합계 (VAT 포함)</td>'+
           '<td class="num">'+fmt(fSup)+'</td><td class="num">'+fmt(fTax)+'</td></tr>'+
         '</tbody>'+
@@ -1489,6 +1612,9 @@ document.getElementById('saveBtn').addEventListener('click', function(){
     date:document.getElementById('iDate').value,
     items:JSON.parse(JSON.stringify(items)),
     optionItems:JSON.parse(JSON.stringify(optionItems)),
+    useGroups:!!useGroups,
+    groups:JSON.parse(JSON.stringify(groups)),
+    activeGroupId:activeGroupId,
     discount:parseInt(document.getElementById('iDiscount').value)||0,
     finalTotal:calcSub()-(parseInt(document.getElementById('iDiscount').value)||0),
     savedAt:new Date().toISOString()
@@ -1581,6 +1707,7 @@ function loadLibrary(){
   el.innerHTML='<div class="lib-grid">'+quotes.map(function(q){
     var itemSum=q.items.slice(0,2).map(function(it){return 'W'+it.w+'×D'+it.d+' '+it.tier+'단×'+it.qty;}).join(', ')+(q.items.length>2?' 외 '+(q.items.length-2)+'종':'');
     var optSum=q.optionItems&&q.optionItems.length?' + 옵션 '+q.optionItems.length+'개':'';
+    var groupSum=q.useGroups&&q.groups&&q.groups.length?' · 그룹 '+q.groups.length+'개':'';
     var saved=new Date(q.savedAt);
     var savedStr=(saved.getMonth()+1)+'월 '+saved.getDate()+'일 '+saved.getHours()+':'+String(saved.getMinutes()).padStart(2,'0');
     var dateStr=q.date?(function(){var p=q.date.split('-');return p[0]+'년 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일';})():'';
@@ -1591,7 +1718,7 @@ function loadLibrary(){
     var orderSentStr=orderSent?formatDateTime(orderSent):'';
     return '<div class="lib-card">'+
       '<div class="lib-card-top"><div class="lib-card-customer">'+q.customer+'</div><div class="lib-card-date">'+savedStr+' 저장</div></div>'+
-      '<div class="lib-card-summary">📅 '+dateStr+'<br>📦 '+itemSum+optSum+(q.discount>0?' 💰 할인 ₩'+q.discount.toLocaleString():'')+'</div>'+
+      '<div class="lib-card-summary">📅 '+dateStr+'<br>📦 '+itemSum+optSum+groupSum+(q.discount>0?' 💰 할인 ₩'+q.discount.toLocaleString():'')+'</div>'+
       (taxIssued?'<div class="lib-issue-status">세금계산서 발행됨 · '+taxIssuedStr+(taxKey?'<span>발행번호 '+taxKey+'</span>':'')+'</div>':'')+
       (orderSent?'<div class="lib-issue-status order">발주 전송됨 · '+orderSentStr+'</div>':'')+
       '<div class="lib-card-bottom">'+
@@ -1614,12 +1741,16 @@ function loadQuote(id){
   var q=JSON.parse(d);
   currentQuoteId=q.id||id;
   items=q.items||[]; optionItems=q.optionItems||[];
+  useGroups=!!q.useGroups;
+  groups=Array.isArray(q.groups)?q.groups:[];
+  activeGroupId=q.activeGroupId||'';
+  if(useGroups) ensureGroup();
   document.getElementById('iCustomer').value=q.customer==='(고객명 없음)'?'':q.customer;
   document.getElementById('iCustomerEmail').value=q.customerEmail || '';
   if(q.customerProfile) applyCustomerProfile(q.customerProfile);
   document.getElementById('iDate').value=q.date||'';
   document.getElementById('iDiscount').value=q.discount||0;
-  renderItems(); renderOptList(); updateBanner();
+  renderGroupControls(); renderItems(); renderOptList(); updateBanner();
   switchTab('new');
   setTimeout(function(){document.getElementById('genBtn').click();},150);
   showToast('✅ 불러왔어요!','success');
@@ -2271,6 +2402,17 @@ function requireOrderValue(value, message, fieldId, sourceQuote){
 function buildOrderPayload(sourceQuote){
   var sourceItems = sourceQuote ? (sourceQuote.items || []) : items;
   var sourceOptions = sourceQuote ? (sourceQuote.optionItems || []) : optionItems;
+  var sourceUseGroups = sourceQuote ? !!sourceQuote.useGroups : !!useGroups;
+  var sourceGroups = sourceQuote ? (sourceQuote.groups || []) : groups;
+  function orderGroupFields(groupId){
+    var g=sourceUseGroups?groupInfo(groupId, sourceGroups):null;
+    return {
+      group_id:g?g.id:'',
+      group_code:g?g.code:'',
+      group_alias:g?g.alias:'',
+      group_label:g?g.label:''
+    };
+  }
   var customerName = sourceQuote ? (sourceQuote.customer || '') : (document.getElementById('iCustomer').value || '').trim();
   var profile = sourceQuote ? (sourceQuote.customerProfile || {}) : saveCurrentCustomerProfile();
   customerName = requireOrderValue(customerName, '고객명/업체명을 입력해주세요.', 'iCustomer', sourceQuote);
@@ -2280,7 +2422,7 @@ function buildOrderPayload(sourceQuote){
   var address = requireOrderValue(profile.address, '주소를 입력해주세요.', 'iCustomerAddress', sourceQuote);
   if(!sourceItems.length) throw new Error('발주 전송할 품목이 없습니다');
   var orderItems = sourceItems.map(function(it){
-    return {
+    return Object.assign({
       type: 'base',
       color: quoteColorCode(it.color),
       width: Number(it.w) || 0,
@@ -2288,9 +2430,9 @@ function buildOrderPayload(sourceQuote){
       height: Number(it.h) || 0,
       levels: Number(it.tier) || 0,
       qty: Math.max(1, Number(it.qty) || 1)
-    };
+    }, orderGroupFields(it.groupId||''));
   }).concat(sourceOptions.map(function(opt){
-    return {
+    return Object.assign({
       type: 'option',
       name: String(opt.name || ''),
       desc: String(opt.desc || ''),
@@ -2298,10 +2440,12 @@ function buildOrderPayload(sourceQuote){
       option_code: quoteOrderOptionCode(opt),
       qty: Math.max(1, Number(opt.qty) || 1),
       price: Number(opt.price) || 0
-    };
+    }, orderGroupFields(opt.groupId||''));
   }));
   return {
     source: 'quote',
+    use_groups: sourceUseGroups,
+    groups: sourceGroups.map(function(g){return {id:g.id,code:g.code,alias:g.alias||'',label:(g.code||'')+'그룹'+(g.alias?' — '+g.alias:'')};}),
     customer_name: customerName,
     phone1: phone1,
     phone2: '',
@@ -2329,7 +2473,8 @@ function sendQuoteOrder(button, quoteId){
   var payload;
   try { payload = buildOrderPayload(sourceQuote); }
   catch(err){ showToast(err.message || '발주 전송 준비에 실패했습니다', 'error'); return; }
-  if(!confirm(sourceQuote.customer + ' 견적서를 발주 시스템으로 전송할까요?')) return;
+  var confirmCustomer = sourceQuote ? sourceQuote.customer : (payload.customer_name || '현재 견적');
+  if(!confirm(confirmCustomer + ' 견적서를 발주 시스템으로 전송할까요?')) return;
   button.disabled = true;
   button.innerHTML = '전송 중...';
   fetch(ORDER_SEND_URL, {
@@ -2781,6 +2926,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=46-brace-code');});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=47-groups');});}</script>
 </body>
 </html>
