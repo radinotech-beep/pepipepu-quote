@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v35-post-direction-priority';
+const CACHE = 'pepipepu-v36-visible-post-wings';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
@@ -11,11 +11,13 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./index.html')))
-  );
+  if (e.request.mode === 'navigate' || e.request.url.endsWith('/index.html')) {
+    e.respondWith(fetch(e.request).then(r => {
+      var copy = r.clone();
+      caches.open(CACHE).then(c => c.put('./index.html', copy));
+      return r;
+    }).catch(() => caches.match('./index.html')));
+    return;
+  }
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
-
-
-
-
