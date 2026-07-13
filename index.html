@@ -801,7 +801,12 @@ input.qty-num[type=number]{-moz-appearance:textfield}
         <div class="fld"><span class="lbl">업태</span><input type="text" class="ipt" id="iCustomerType" placeholder="예) 도소매"></div>
         <div class="fld"><span class="lbl">업종</span><input type="text" class="ipt" id="iCustomerCategory" placeholder="예) 앵글선반"></div>
       </div>
-      <div class="fld"><span class="lbl">사업장 주소</span><input type="text" class="ipt" id="iCustomerAddress" placeholder="사업자등록증 주소"></div>
+      <div class="fld"><span class="lbl">전화번호</span><input type="tel" class="ipt" id="iCustomerPhone1" placeholder="예) 010-1234-5678"></div>
+      <div style="display:grid;grid-template-columns:.7fr 1.3fr;gap:8px">
+        <div class="fld"><span class="lbl">우편번호</span><input type="text" class="ipt" id="iCustomerZipcode" inputmode="numeric" maxlength="5" placeholder="5자리"></div>
+        <div class="fld"><span class="lbl">주소</span><input type="text" class="ipt" id="iCustomerAddress" placeholder="배송지 주소"></div>
+      </div>
+      <div class="fld"><span class="lbl">배송 메모</span><input type="text" class="ipt" id="iDeliveryMemo" placeholder="예) 배송 전 연락 바랍니다"></div>
       <div class="fld"><span class="lbl">거래처 이메일</span><input type="email" class="ipt" id="iCustomerEmail" placeholder="customer@example.com"></div>
       <div class="fld"><span class="lbl">발행일</span><input type="date" class="ipt" id="iDate"></div>
     </div>
@@ -1974,7 +1979,10 @@ function collectCustomerProfile(){
     representativeName: (document.getElementById('iCustomerRep').value || '').trim(),
     businessType: (document.getElementById('iCustomerType').value || '').trim(),
     businessCategory: (document.getElementById('iCustomerCategory').value || '').trim(),
+    phone1: (document.getElementById('iCustomerPhone1').value || '').trim(),
+    zipcode: (document.getElementById('iCustomerZipcode').value || '').trim(),
     address: (document.getElementById('iCustomerAddress').value || '').trim(),
+    deliveryMemo: (document.getElementById('iDeliveryMemo').value || '').trim(),
     email: (document.getElementById('iCustomerEmail').value || '').trim()
   };
 }
@@ -1986,7 +1994,10 @@ function applyCustomerProfile(profile){
   if(profile.representativeName) document.getElementById('iCustomerRep').value=profile.representativeName;
   if(profile.businessType) document.getElementById('iCustomerType').value=profile.businessType;
   if(profile.businessCategory) document.getElementById('iCustomerCategory').value=profile.businessCategory;
+  if(profile.phone1 || profile.phone) document.getElementById('iCustomerPhone1').value=profile.phone1 || profile.phone;
+  if(profile.zipcode) document.getElementById('iCustomerZipcode').value=profile.zipcode;
   if(profile.address) document.getElementById('iCustomerAddress').value=profile.address;
+  if(profile.deliveryMemo) document.getElementById('iDeliveryMemo').value=profile.deliveryMemo;
   if(profile.email) document.getElementById('iCustomerEmail').value=profile.email;
 }
 
@@ -2037,6 +2048,8 @@ function normalizeBizExtract(data){
     representativeName: data.representative_name || data.representativeName || '',
     businessType: data.business_type || data.businessType || '',
     businessCategory: data.business_category || data.businessCategory || '',
+    phone1: data.phone || data.phone1 || '',
+    zipcode: data.zipcode || data.zone_no || '',
     address: data.address || '',
     email: data.email || ''
   };
@@ -2146,7 +2159,7 @@ document.getElementById('bizRegFile').addEventListener('change', function(){
 document.getElementById('iCustomer').addEventListener('change', function(){
   loadCustomerProfileByName(this.value);
 });
-['iCustomerBizNo','iCustomerRep','iCustomerType','iCustomerCategory','iCustomerAddress','iCustomerEmail'].forEach(function(id){
+['iCustomerBizNo','iCustomerRep','iCustomerType','iCustomerCategory','iCustomerPhone1','iCustomerZipcode','iCustomerAddress','iDeliveryMemo','iCustomerEmail'].forEach(function(id){
   document.getElementById(id).addEventListener('change', saveCurrentCustomerProfile);
 });
 
@@ -2219,15 +2232,35 @@ function quoteColorCode(value){
   return String(value || '').indexOf('블랙') >= 0 ? 'BW' : 'WW';
 }
 
+function requireOrderValue(value, message, fieldId, sourceQuote){
+  value = String(value || '').trim();
+  if(value) return value;
+  alert(message);
+  if(!sourceQuote && fieldId){
+    var el=document.getElementById(fieldId);
+    if(el) el.focus();
+  }
+  throw new Error(message);
+}
+
 function buildOrderPayload(sourceQuote){
   var sourceItems = sourceQuote ? (sourceQuote.items || []) : items;
   var customerName = sourceQuote ? (sourceQuote.customer || '') : (document.getElementById('iCustomer').value || '').trim();
-  customerName = String(customerName || '').trim();
-  if(!customerName || customerName === '(고객명 없음)') throw new Error('거래처명을 입력하거나 저장된 견적서를 선택해주세요');
+  var profile = sourceQuote ? (sourceQuote.customerProfile || {}) : saveCurrentCustomerProfile();
+  customerName = requireOrderValue(customerName, '고객명/업체명을 입력해주세요.', 'iCustomer', sourceQuote);
+  if(customerName === '(고객명 없음)') customerName = requireOrderValue('', '고객명/업체명을 입력해주세요.', 'iCustomer', sourceQuote);
+  var phone1 = requireOrderValue(profile.phone1 || profile.phone, '전화번호를 입력해주세요.', 'iCustomerPhone1', sourceQuote);
+  var zipcode = requireOrderValue(profile.zipcode, '우편번호를 입력해주세요.', 'iCustomerZipcode', sourceQuote);
+  var address = requireOrderValue(profile.address, '주소를 입력해주세요.', 'iCustomerAddress', sourceQuote);
   if(!sourceItems.length) throw new Error('발주 전송할 품목이 없습니다');
   return {
     source: 'quote',
     customer_name: customerName,
+    phone1: phone1,
+    phone2: '',
+    zipcode: zipcode,
+    address: address,
+    delivery_memo: profile.deliveryMemo || profile.delivery_memo || '',
     quote_id: sourceQuote && sourceQuote.id || currentQuoteId || '',
     sent_at: new Date().toISOString(),
     items: sourceItems.map(function(it){
@@ -2246,8 +2279,12 @@ function buildOrderPayload(sourceQuote){
 function sendQuoteOrder(button, quoteId){
   var original = button.innerHTML || button.textContent;
   var historyQuoteId = quoteId || currentQuoteId || '';
-  var sourceQuote = historyQuoteId ? getStoredQuote(historyQuoteId) : null;
-  if(!sourceQuote){
+  var sourceQuote = quoteId ? getStoredQuote(quoteId) : null;
+  if(quoteId && !sourceQuote){
+    showToast('저장된 견적서를 찾을 수 없습니다', 'error');
+    return;
+  }
+  if(!historyQuoteId){
     showToast('발주 이력을 남기려면 먼저 견적서를 저장해주세요', 'error');
     return;
   }

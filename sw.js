@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v43-cloud-run-order-url';
+const CACHE = 'pepipepu-v44-order-required-fields';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
