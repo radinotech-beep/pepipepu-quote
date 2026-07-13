@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v36-visible-post-wings';
+const CACHE = 'pepipepu-v37-subtle-post-edges';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
