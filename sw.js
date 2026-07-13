@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v34-qp-hole-detail';
+const CACHE = 'pepipepu-v35-post-direction-priority';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
