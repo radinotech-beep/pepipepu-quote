@@ -2247,8 +2247,7 @@ function quoteOrderOptionCode(option){
   if(m && hasColor) return '6P12' + colorLetter + String(Math.floor(Number(m[1]) / 10)).padStart(8, '0');
   if(m) return '받침앵글' + m[1] + 'mm';
   m = name.match(/^보강대\s*(\d+)mm$/);
-  if(m && hasColor) return '6P14' + colorLetter + String(Math.floor(Number(m[1]) / 10)).padStart(8, '0');
-  if(m) return '보강대' + m[1] + 'mm';
+  if(m) return '6P14S' + String(Math.floor(Number(m[1]) / 10)).padStart(8, '0');
   m = name.match(/^단추가\s*W(\d+)×D(\d+)/);
   if(m && hasColor) return '6P03' + optColor + String(Math.floor(Number(m[1]) / 100)).padStart(2, '0') + String(Math.floor(Number(m[2]) / 100)).padStart(2, '0') + '001';
   if(m) return '선반추가' + m[1] + 'x' + m[2];
@@ -2782,6 +2781,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=45-order-options');});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=46-brace-code');});}</script>
 </body>
 </html>
