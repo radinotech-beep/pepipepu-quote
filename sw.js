@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v44-order-required-fields';
+const CACHE = 'pepipepu-v45-order-options';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
@@ -12,7 +12,8 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   if (e.request.mode === 'navigate' || e.request.url.endsWith('/index.html')) {
-    e.respondWith(fetch(e.request).then(r => {
+    const freshRequest = new Request(e.request, { cache: 'reload' });
+    e.respondWith(fetch(freshRequest).then(r => {
       var copy = r.clone();
       caches.open(CACHE).then(c => c.put('./index.html', copy));
       return r;
