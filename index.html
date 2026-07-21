@@ -905,6 +905,23 @@ input.qty-num[type=number]{-moz-appearance:textfield}
           <select id="sDanWD"><option value="">— 선택 —</option></select>
         </div>
       </div>
+      <div id="boardOptBox" style="display:none;flex-direction:column;gap:8px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="fld">
+            <span class="lbl">가로 W</span>
+            <select id="sBoardW"><option value="">— 가로 —</option></select>
+          </div>
+          <div class="fld">
+            <span class="lbl">깊이 D</span>
+            <select id="sBoardD" disabled><option value="">— 깊이 —</option></select>
+          </div>
+        </div>
+        <div class="fld">
+          <span class="lbl">수량</span>
+          <input type="number" class="ipt" id="iBoardQty" min="1" max="99" value="1" inputmode="numeric">
+        </div>
+        <div class="empty-hint" id="boardPriceHint" style="padding:2px 0;text-align:left">가로와 깊이를 선택하면 가격이 표시됩니다</div>
+      </div>
       <!-- 일반 옵션 -->
       <div id="normalOptBox">
         <div class="fld">
@@ -1055,6 +1072,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 <script>
 var P={"200":{"200":{"300":19700}},"300":{"300":{"600":30400,"900":30400}},"400":{"300":{"900":32900,"1200":37100,"1500":41400,"1800":45600,"2100":49900},"400":{"900":38700,"1200":42900,"1500":47200,"1800":51400,"2100":55700}},"500":{"300":{"900":36700,"1200":40900,"1500":45100,"1800":49400,"2100":53600},"400":{"900":40400,"1200":44700,"1500":48900,"1800":53200,"2100":57400},"500":{"900":44700,"1200":48900,"1500":53200,"1800":57400,"2100":61700}},"600":{"300":{"900":38900,"1200":43100,"1500":47300,"1800":51600,"2100":55800},"400":{"900":42600,"1200":46900,"1500":51100,"1800":55400,"2100":59600},"500":{"900":48400,"1200":52700,"1500":56900,"1800":61200,"2100":65400},"600":{"900":50200,"1200":54400,"1500":58700,"1800":62900,"2100":67100}},"700":{"300":{"900":42600,"1200":46900,"1500":51100,"1800":55400,"2100":59600},"400":{"900":47700,"1200":51900,"1500":56100,"1800":60400,"2100":64600},"500":{"900":54100,"1200":58400,"1500":62600,"1800":66800,"2100":71100},"600":{"900":56000,"1200":60200,"1500":64500,"1800":68700,"2100":73000},"700":{"900":58500,"1200":62800,"1500":67000,"1800":71200,"2100":75500}},"800":{"300":{"900":44500,"1200":48800,"1500":53000,"1800":57200,"2100":61500},"400":{"900":49400,"1200":53600,"1500":57900,"1800":62100,"2100":66400},"500":{"900":56000,"1200":60200,"1500":64500,"1800":68700,"2100":73000},"600":{"900":58500,"1200":62800,"1500":67000,"1800":71200,"2100":75500},"700":{"900":60400,"1200":64600,"1500":68900,"1800":73100,"2100":77400},"800":{"900":66800,"1200":71100,"1500":75300,"1800":79600,"2100":83800}},"900":{"300":{"900":47500,"1200":51700,"1500":56000,"1800":60200,"2100":64500},"400":{"900":52100,"1200":56300,"1500":60600,"1800":64800,"2100":69000},"500":{"900":60100,"1200":64300,"1500":68600,"1800":72800,"2100":77000},"600":{"900":62300,"1200":66500,"1500":70800,"1800":75000,"2100":79200},"700":{"900":64200,"1200":68400,"1500":72600,"1800":76900,"2100":81100},"800":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"900":{"900":76400,"1200":80700,"1500":84900,"1800":89100,"2100":93400}},"1000":{"300":{"900":50500,"1200":54700,"1500":59000,"1800":63200,"2100":67500},"400":{"900":55400,"1200":59600,"1500":63900,"1800":68100,"2100":72300},"500":{"900":63900,"1200":68100,"1500":72300,"1800":76600,"2100":80800},"600":{"900":66000,"1200":70300,"1500":74500,"1800":78800,"2100":83000},"700":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"800":{"900":75900,"1200":80200,"1500":84400,"1800":88700,"2100":92900},"900":{"900":81300,"1200":85500,"1500":89800,"1800":94000,"2100":98300}},"1100":{"300":{"900":54600,"1200":58800,"1500":63100,"1800":67300,"2100":71500},"400":{"900":60400,"1200":64600,"1500":68900,"1800":73100,"2100":77400},"500":{"900":69700,"1200":73900,"1500":78100,"1800":82400,"2100":86600},"600":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"700":{"900":73600,"1200":77800,"1500":82100,"1800":86300,"2100":90600},"800":{"900":82900,"1200":87100,"1500":91300,"1800":95600,"2100":99800},"900":{"900":88700,"1200":92900,"1500":97200,"1800":101400,"2100":105600}},"1200":{"300":{"900":56500,"1200":60700,"1500":65000,"1800":69200,"2100":73400},"400":{"900":62100,"1200":66400,"1500":70600,"1800":74800,"2100":79100},"500":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"600":{"900":73600,"1200":77800,"1500":82100,"1800":86300,"2100":90600},"700":{"900":75500,"1200":79700,"1500":84000,"1800":88200,"2100":92400},"800":{"900":85100,"1200":89300,"1500":93500,"1800":97800,"2100":102000},"900":{"900":90400,"1200":94600,"1500":98900,"1800":103100,"2100":107400}}};
 var TA={"300":{"300":7700},"400":{"300":8800,"400":11700},"500":{"300":10700,"400":12600,"500":14600},"600":{"300":11800,"400":13700,"500":16500,"600":17500},"700":{"300":13700,"400":16100,"500":19400,"600":20200,"700":21600},"800":{"300":14500,"400":17000,"500":20200,"600":21600,"700":22500,"800":25800},"900":{"300":16100,"400":18300,"500":22400,"600":23500,"700":24400,"800":28200,"900":30500},"1000":{"300":17500,"400":20000,"500":24200,"600":25300,"700":28200,"800":30400,"900":33000},"1100":{"300":19700,"400":22500,"500":27100,"600":28200,"700":29100,"800":33800,"900":36600},"1200":{"300":20500,"400":23400,"500":28200,"600":29100,"700":30000,"800":34900,"900":37500}};
+var BOARD_SUPPLY={"400":{"300":4100,"400":6300},"500":{"300":5400,"400":6800,"500":8400},"600":{"300":5900,"400":7300,"500":9600,"600":9700},"700":{"300":7300,"400":9000,"500":12000,"600":12300,"700":12500},"800":{"300":7300,"400":9200,"500":12300,"600":12500,"700":12900,"800":16000},"900":{"300":8400,"400":10100,"500":13500,"600":13800,"700":14100,"800":17500,"900":19400},"1000":{"300":9200,"400":10900,"500":15000,"600":15100,"700":17500,"800":19300,"900":21100},"1100":{"300":10500,"400":12900,"500":17200,"600":17500,"700":17700,"800":22200,"900":24600},"1200":{"300":10800,"400":13000,"500":17500,"600":17700,"700":18000,"800":22600,"900":24800}};
 var OPTIONS=[
   {cat:'바퀴/이동',name:'바퀴셋트',desc:'일반 2개+브레이크 2개',price:22700},
   {cat:'바퀴/이동',name:'조절좌',desc:'4개 기준',price:11700},
@@ -1256,7 +1274,7 @@ function renderItems(){
 
 // 옵션 카테고리
 (function(){
-  var cats=['전체','바퀴/이동','수납','행거봉세트','가공','받침앵글','보강대','단추가'];
+  var cats=['전체','바퀴/이동','수납','행거봉세트','가공','받침앵글','보강대','상판(양면코팅합판)','단추가'];
   var sel=document.getElementById('sCat');
   sel.innerHTML='';
   cats.forEach(function(c){var o=document.createElement('option');o.value=c==='전체'?'':c;o.textContent=c;sel.appendChild(o);});
@@ -1276,6 +1294,50 @@ document.getElementById('danB').addEventListener('click',function(){
   this.className='cbtn on-b';
   document.getElementById('danW').className='cbtn';
 });
+
+function boardOrderCode(w,d){
+  return '6P22W' + String(Math.floor(Number(w)/100)).padStart(5,'0') + String(Math.floor(Number(d)/10)).padStart(3,'0');
+}
+function boardVatPrice(supply){
+  return Math.round(Number(supply||0)*1.1);
+}
+function updateBoardDOptions(){
+  var w=document.getElementById('sBoardW').value;
+  var sel=document.getElementById('sBoardD');
+  sel.innerHTML='<option value="">— 깊이 —</option>';
+  sel.disabled=!w;
+  if(!w){updateBoardPriceHint();return;}
+  Object.keys(BOARD_SUPPLY[w]).map(Number).sort(function(a,b){return a-b;}).forEach(function(d){
+    var o=document.createElement('option');
+    o.value=d;
+    o.textContent='D'+d;
+    sel.appendChild(o);
+  });
+  updateBoardPriceHint();
+}
+function updateBoardPriceHint(){
+  var w=document.getElementById('sBoardW').value;
+  var d=document.getElementById('sBoardD').value;
+  var hint=document.getElementById('boardPriceHint');
+  if(!w||!d||!BOARD_SUPPLY[w]||!BOARD_SUPPLY[w][d]){
+    hint.textContent='가로와 깊이를 선택하면 가격이 표시됩니다';
+    return;
+  }
+  var supply=BOARD_SUPPLY[w][d];
+  hint.textContent='양면코팅합판 ['+w+'*'+d+'*9T] · 공급가 '+fmt(supply)+' / 견적가(VAT 포함) '+fmt(boardVatPrice(supply));
+}
+(function(){
+  var sel=document.getElementById('sBoardW');
+  Object.keys(BOARD_SUPPLY).map(Number).sort(function(a,b){return a-b;}).forEach(function(w){
+    var o=document.createElement('option');
+    o.value=w;
+    o.textContent='W'+w;
+    sel.appendChild(o);
+  });
+  document.getElementById('sBoardW').addEventListener('change',updateBoardDOptions);
+  document.getElementById('sBoardD').addEventListener('change',updateBoardPriceHint);
+  document.getElementById('iBoardQty').addEventListener('input',updateBoardPriceHint);
+})();
 
 // sDanWD 초기화
 (function(){
@@ -1322,9 +1384,45 @@ function updateOptSel(){
 }
 document.getElementById('sCat').addEventListener('change',function(){
   var isDan = this.value==='단추가';
+  var isBoard = this.value==='상판(양면코팅합판)';
   document.getElementById('danOptBox').style.display = isDan?'flex':'none';
-  document.getElementById('normalOptBox').style.display = isDan?'none':'block';
-  if(!isDan) updateOptSel();
+  document.getElementById('boardOptBox').style.display = isBoard?'flex':'none';
+  document.getElementById('normalOptBox').style.display = (isDan||isBoard)?'none':'block';
+  document.getElementById('addOptBtn').textContent = isBoard ? '+ 상판 추가' : '+ 옵션 추가';
+  if(!isDan&&!isBoard) updateOptSel();
+});
+
+document.getElementById('addOptBtn').addEventListener('click',function(){
+  if(document.getElementById('sCat').value!=='상판(양면코팅합판)') return;
+  var w=document.getElementById('sBoardW').value;
+  var d=document.getElementById('sBoardD').value;
+  var qty=Math.max(1, parseInt(document.getElementById('iBoardQty').value,10)||1);
+  if(!w||!d||!BOARD_SUPPLY[w]||!BOARD_SUPPLY[w][d]){
+    showToast('상판 가로와 깊이를 선택해주세요', 'error');
+    return;
+  }
+  var supply=BOARD_SUPPLY[w][d];
+  var name='양면코팅합판 ['+w+'*'+d+'*9T]';
+  var groupId=getActiveGroupId();
+  var existing=optionItems.find(function(o){return o.category==='상판'&&o.code===boardOrderCode(w,d)&&(o.groupId||'')===groupId;});
+  if(existing){ existing.qty+=qty; }
+  else{
+    optionItems.push({
+      type:'option',
+      category:'상판',
+      code:boardOrderCode(w,d),
+      option_code:boardOrderCode(w,d),
+      name:name,
+      desc:'상판(양면코팅합판) W'+w+'×D'+d+'×9T',
+      price:boardVatPrice(supply),
+      supplyPrice:supply,
+      orderPrice:supply,
+      qty:qty,
+      color:'한면 흰색 × 한면 우드색',
+      groupId:groupId
+    });
+  }
+  renderOptList(); updateBanner(); updateBoardPriceHint();
 });
 
 document.getElementById('sOpt').addEventListener('change',function(){
@@ -2364,6 +2462,7 @@ function quoteColorCode(value){
 }
 
 function quoteOrderOptionCode(option){
+  if(option && (option.code || option.option_code)) return String(option.code || option.option_code);
   var name = String(option && option.name || '').trim();
   var desc = String(option && option.desc || '').trim();
   var hasColor = Boolean(option && option.color);
@@ -2432,14 +2531,17 @@ function buildOrderPayload(sourceQuote){
       qty: Math.max(1, Number(it.qty) || 1)
     }, orderGroupFields(it.groupId||''));
   }).concat(sourceOptions.map(function(opt){
+    var optCode=quoteOrderOptionCode(opt);
     return Object.assign({
       type: 'option',
+      category: String(opt.category || ''),
+      code: optCode,
       name: String(opt.name || ''),
       desc: String(opt.desc || ''),
       color: String(opt.color || ''),
-      option_code: quoteOrderOptionCode(opt),
+      option_code: optCode,
       qty: Math.max(1, Number(opt.qty) || 1),
-      price: Number(opt.price) || 0
+      price: Number(opt.orderPrice || opt.price) || 0
     }, orderGroupFields(opt.groupId||''));
   }));
   return {
@@ -2926,6 +3028,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=47-groups');});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=48-board-option');});}</script>
 </body>
 </html>
