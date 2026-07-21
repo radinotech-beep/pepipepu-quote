@@ -411,7 +411,7 @@ select option{color:var(--text)}
 .qty-ctrl{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .qty-btn{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--mint-md);background:#fff;color:var(--mint2);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all .12s;-webkit-tap-highlight-color:transparent;padding:0}
 .qty-btn:active{background:var(--mint);color:#fff;border-color:var(--mint)}
-.qty-num{font-family:'DM Mono',monospace!important;font-size:13px;font-weight:600;color:var(--mint2);width:36px;text-align:center;border:1.5px solid transparent;background:transparent;outline:none;padding:2px 0;cursor:text;border-radius:4px;transition:border .12s}
+.qty-num{font-family:'DM Mono',monospace!important;font-size:13px;font-weight:600;color:var(--mint2);width:46px;min-width:46px;text-align:center;border:1.5px solid transparent;background:transparent;outline:none;padding:2px 3px;cursor:text;border-radius:4px;transition:border .12s}
 .qty-num:focus{background:#fff;border-color:var(--mint-md);}
 input.qty-num::-webkit-inner-spin-button,input.qty-num::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 input.qty-num[type=number]{-moz-appearance:textfield}
@@ -1382,15 +1382,17 @@ function updateOptSel(){
     sel.appendChild(op);
   });
 }
-document.getElementById('sCat').addEventListener('change',function(){
-  var isDan = this.value==='단추가';
-  var isBoard = this.value==='상판(양면코팅합판)';
+function updateOptionMode(){
+  var cat=document.getElementById('sCat').value;
+  var isDan = cat==='단추가';
+  var isBoard = cat==='상판(양면코팅합판)';
   document.getElementById('danOptBox').style.display = isDan?'flex':'none';
   document.getElementById('boardOptBox').style.display = isBoard?'flex':'none';
   document.getElementById('normalOptBox').style.display = (isDan||isBoard)?'none':'block';
   document.getElementById('addOptBtn').textContent = isBoard ? '+ 상판 추가' : '+ 옵션 추가';
   if(!isDan&&!isBoard) updateOptSel();
-});
+}
+document.getElementById('sCat').addEventListener('change',updateOptionMode);
 
 document.getElementById('addOptBtn').addEventListener('click',function(){
   if(document.getElementById('sCat').value!=='상판(양면코팅합판)') return;
@@ -1540,6 +1542,22 @@ function calcDiscount(){
 
 document.getElementById('iDiscPct').addEventListener('input',function(){calcDiscount();updateBanner();});
 document.getElementById('iDiscAmt').addEventListener('input',function(){calcDiscount();updateBanner();});
+
+function applyLoadedDiscount(discount){
+  discount=parseInt(discount,10)||0;
+  document.getElementById('iDiscPct').value='';
+  document.getElementById('iDiscAmt').value='';
+  document.getElementById('discLinked').style.display='none';
+  document.getElementById('iDiscount').value=discount;
+  if(discount>0){
+    setDiscTab('amt');
+    document.getElementById('iDiscAmt').value=discount;
+    calcDiscount();
+  }else{
+    setDiscTab('pct');
+  }
+  updateBanner();
+}
 
 document.getElementById('emailAttachImage').addEventListener('change', function(){
   if(document.getElementById('quoteDoc')){
@@ -1847,7 +1865,9 @@ function loadQuote(id){
   document.getElementById('iCustomerEmail').value=q.customerEmail || '';
   if(q.customerProfile) applyCustomerProfile(q.customerProfile);
   document.getElementById('iDate').value=q.date||'';
-  document.getElementById('iDiscount').value=q.discount||0;
+  document.getElementById('sCat').value='';
+  updateOptionMode();
+  applyLoadedDiscount(q.discount||0);
   renderGroupControls(); renderItems(); renderOptList(); updateBanner();
   switchTab('new');
   setTimeout(function(){document.getElementById('genBtn').click();},150);
@@ -3028,6 +3048,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=48-board-option');});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=49-load-discount-fixes');});}</script>
 </body>
 </html>

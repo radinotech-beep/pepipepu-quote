@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v48-board-option';
+const CACHE = 'pepipepu-v49-load-discount-fixes';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
