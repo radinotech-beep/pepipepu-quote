@@ -941,7 +941,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
         </div>
         <div class="fld">
           <span class="lbl">단가 (VAT포함)</span>
-          <input type="number" class="ipt" id="iEtcPrice" min="0" placeholder="0" inputmode="numeric">
+          <input type="number" class="ipt" id="iEtcPrice" placeholder="예) -5000" inputmode="numeric">
         </div>
         <div class="fld">
           <span class="lbl">수량</span>
@@ -1420,10 +1420,10 @@ document.getElementById('addOptBtn').addEventListener('click',function(){
   if(document.getElementById('sCat').value==='기타(직접입력)'){
     var etcName=document.getElementById('iEtcName').value.trim();
     var etcDesc=document.getElementById('iEtcDesc').value.trim();
-    var etcPrice=parseInt(document.getElementById('iEtcPrice').value,10)||0;
+    var etcPrice=parseInt(document.getElementById('iEtcPrice').value,10);
     var etcQty=Math.max(1, parseInt(document.getElementById('iEtcQty').value,10)||1);
     if(!etcName){ showToast('품목명을 입력해주세요', 'error'); return; }
-    if(etcPrice<=0){ showToast('단가를 입력해주세요', 'error'); return; }
+    if(etcPrice===0 || isNaN(etcPrice)){ showToast('0원이 아닌 단가를 입력해주세요', 'error'); return; }
     var etcGroupId=getActiveGroupId();
     optionItems.push({
       type:'option',
