@@ -929,6 +929,25 @@ input.qty-num[type=number]{-moz-appearance:textfield}
           <select id="sOpt"><option value="">— 선택 —</option></select>
         </div>
       </div>
+      <!-- 기타 직접입력 -->
+      <div id="etcOptBox" style="display:none;flex-direction:column;gap:8px">
+        <div class="fld">
+          <span class="lbl">품목명</span>
+          <input type="text" class="ipt" id="iEtcName" placeholder="예) 특수 브라켓">
+        </div>
+        <div class="fld">
+          <span class="lbl">규격/설명</span>
+          <input type="text" class="ipt" id="iEtcDesc" placeholder="예) 200x50mm">
+        </div>
+        <div class="fld">
+          <span class="lbl">단가 (VAT포함)</span>
+          <input type="number" class="ipt" id="iEtcPrice" min="0" placeholder="0" inputmode="numeric">
+        </div>
+        <div class="fld">
+          <span class="lbl">수량</span>
+          <input type="number" class="ipt" id="iEtcQty" min="1" max="999" value="1" inputmode="numeric">
+        </div>
+      </div>
       </div>
     <button class="add-btn" id="addOptBtn">+ 옵션 추가</button>
     <div class="item-list" id="optList" style="margin-top:6px"><div class="empty-hint">옵션을 추가해주세요</div></div>
@@ -1274,7 +1293,7 @@ function renderItems(){
 
 // 옵션 카테고리
 (function(){
-  var cats=['전체','바퀴/이동','수납','행거봉세트','가공','받침앵글','보강대','상판(양면코팅합판)','단추가'];
+  var cats=['전체','바퀴/이동','수납','행거봉세트','가공','받침앵글','보강대','상판(양면코팅합판)','단추가','기타(직접입력)'];
   var sel=document.getElementById('sCat');
   sel.innerHTML='';
   cats.forEach(function(c){var o=document.createElement('option');o.value=c==='전체'?'':c;o.textContent=c;sel.appendChild(o);});
@@ -1299,7 +1318,7 @@ function boardOrderCode(w,d){
   return '6P22W' + String(Math.floor(Number(w)/100)).padStart(5,'0') + String(Math.floor(Number(d)/10)).padStart(3,'0');
 }
 function boardVatPrice(supply){
-  return Math.round(Number(supply||0)*1.1);
+  return Number(supply||0);
 }
 function updateBoardDOptions(){
   var w=document.getElementById('sBoardW').value;
@@ -1323,8 +1342,9 @@ function updateBoardPriceHint(){
     hint.textContent='가로와 깊이를 선택하면 가격이 표시됩니다';
     return;
   }
-  var supply=BOARD_SUPPLY[w][d];
-  hint.textContent='양면코팅합판 ['+w+'*'+d+'*9T] · 공급가 '+fmt(supply)+' / 견적가(VAT 포함) '+fmt(boardVatPrice(supply));
+  var vatPrice=BOARD_SUPPLY[w][d];
+  var supplyPrice=Math.round(vatPrice/1.1);
+  hint.textContent='양면코팅합판 ['+w+'*'+d+'*9T] · 공급가 '+fmt(supplyPrice)+' / 견적가(VAT 포함) '+fmt(vatPrice);
 }
 (function(){
   var sel=document.getElementById('sBoardW');
@@ -1386,15 +1406,43 @@ function updateOptionMode(){
   var cat=document.getElementById('sCat').value;
   var isDan = cat==='단추가';
   var isBoard = cat==='상판(양면코팅합판)';
+  var isEtc = cat==='기타(직접입력)';
   document.getElementById('danOptBox').style.display = isDan?'flex':'none';
   document.getElementById('boardOptBox').style.display = isBoard?'flex':'none';
-  document.getElementById('normalOptBox').style.display = (isDan||isBoard)?'none':'block';
-  document.getElementById('addOptBtn').textContent = isBoard ? '+ 상판 추가' : '+ 옵션 추가';
-  if(!isDan&&!isBoard) updateOptSel();
+  document.getElementById('etcOptBox').style.display = isEtc?'flex':'none';
+  document.getElementById('normalOptBox').style.display = (isDan||isBoard||isEtc)?'none':'block';
+  document.getElementById('addOptBtn').textContent = isBoard ? '+ 상판 추가' : isEtc ? '+ 기타 추가' : '+ 옵션 추가';
+  if(!isDan&&!isBoard&&!isEtc) updateOptSel();
 }
 document.getElementById('sCat').addEventListener('change',updateOptionMode);
 
 document.getElementById('addOptBtn').addEventListener('click',function(){
+  if(document.getElementById('sCat').value==='기타(직접입력)'){
+    var etcName=document.getElementById('iEtcName').value.trim();
+    var etcDesc=document.getElementById('iEtcDesc').value.trim();
+    var etcPrice=parseInt(document.getElementById('iEtcPrice').value,10)||0;
+    var etcQty=Math.max(1, parseInt(document.getElementById('iEtcQty').value,10)||1);
+    if(!etcName){ showToast('품목명을 입력해주세요', 'error'); return; }
+    if(etcPrice<=0){ showToast('단가를 입력해주세요', 'error'); return; }
+    var etcGroupId=getActiveGroupId();
+    optionItems.push({
+      type:'option',
+      category:'기타',
+      name:etcName,
+      desc:etcDesc||'-',
+      price:etcPrice,
+      qty:etcQty,
+      color:'',
+      groupId:etcGroupId,
+      isEtc:true
+    });
+    renderOptList(); updateBanner();
+    document.getElementById('iEtcName').value='';
+    document.getElementById('iEtcDesc').value='';
+    document.getElementById('iEtcPrice').value='';
+    document.getElementById('iEtcQty').value='1';
+    return;
+  }
   if(document.getElementById('sCat').value!=='상판(양면코팅합판)') return;
   var w=document.getElementById('sBoardW').value;
   var d=document.getElementById('sBoardD').value;
@@ -1416,8 +1464,8 @@ document.getElementById('addOptBtn').addEventListener('click',function(){
       option_code:boardOrderCode(w,d),
       name:name,
       desc:'상판(양면코팅합판) W'+w+'×D'+d+'×9T',
-      price:boardVatPrice(supply),
-      supplyPrice:supply,
+      price:supply,
+      supplyPrice:Math.round(supply/1.1),
       orderPrice:supply,
       qty:qty,
       color:'한면 흰색 × 한면 우드색',
@@ -1575,7 +1623,7 @@ document.getElementById('genBtn').addEventListener('click',function(){
     document.getElementById('iCustomer').focus();
     return;
   }
-  if(items.length===0){warn.style.display='block';warn.textContent='품목을 최소 1개 이상 추가해주세요';return;}
+  if(items.length===0 && optionItems.length===0){warn.style.display='block';warn.textContent='품목 또는 옵션을 최소 1개 이상 추가해주세요';return;}
   warn.style.display='none';
   var dateVal=document.getElementById('iDate').value;
   var dateStr=dateVal?(function(){var p=dateVal.split('-');return p[0]+'년 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일';})():'';
