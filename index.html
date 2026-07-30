@@ -2470,7 +2470,7 @@ function buildTaxInvoicePayload(sourceQuote){
     if(!sourceQuote) document.getElementById('iCustomer').focus();
     throw new Error('거래처명이 비어 있습니다');
   }
-  if(!sourceItems.length){
+  if(!sourceItems.length && !sourceOptions.length){
     throw new Error('견적 금액이 없습니다');
   }
   var profile = sourceQuote ? (sourceQuote.customerProfile || {}) : saveCurrentCustomerProfile();
@@ -2484,11 +2484,16 @@ function buildTaxInvoicePayload(sourceQuote){
   var finalTotal = sourceQuote && typeof sourceQuote.finalTotal === 'number'
     ? Math.max(0, sourceQuote.finalTotal)
     : Math.max(0, calcSub() - discount);
+  if(finalTotal<=0){
+    throw new Error('세금계산서 발행 금액이 0원 이하입니다');
+  }
   var supplyCost = Math.round(finalTotal / 1.1);
   var tax = finalTotal - supplyCost;
   var today = new Date().toISOString().slice(0, 10);
   var itemName = sourceItems.length === 1 && sourceOptions.length === 0
     ? '앵글선반 W' + sourceItems[0].w + ' D' + sourceItems[0].d + ' H' + sourceItems[0].h + ' ' + sourceItems[0].tier + '단'
+    : sourceItems.length === 0 && sourceOptions.length === 1
+      ? String(sourceOptions[0].name || '옵션 품목')
     : '앵글선반 외 ' + (sourceItems.length + sourceOptions.length) + '건';
 
   var manager = {};
@@ -2588,7 +2593,7 @@ function buildOrderPayload(sourceQuote){
   var phone1 = requireOrderValue(profile.phone1 || profile.phone, '전화번호를 입력해주세요.', 'iCustomerPhone1', sourceQuote);
   var zipcode = requireOrderValue(profile.zipcode, '우편번호를 입력해주세요.', 'iCustomerZipcode', sourceQuote);
   var address = requireOrderValue(profile.address, '주소를 입력해주세요.', 'iCustomerAddress', sourceQuote);
-  if(!sourceItems.length) throw new Error('발주 전송할 품목이 없습니다');
+  if(!sourceItems.length && !sourceOptions.length) throw new Error('발주 전송할 품목이 없습니다');
   var orderItems = sourceItems.map(function(it){
     return Object.assign({
       type: 'base',
