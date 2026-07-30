@@ -219,6 +219,7 @@ select option{color:var(--text)}
   padding:9px 12px;display:flex;align-items:center;gap:8px;font-size:13px;
 }
 .item-row .ispec{flex:1;color:var(--text);font-weight:500}
+.item-row .idesc{display:block;margin-top:2px;color:var(--text2);font-size:11px;font-weight:400;line-height:1.35;word-break:break-word}
 .item-row .iqty{font-family:'Noto Sans KR',sans-serif;color:var(--mint2);font-weight:500}
 .item-row .iprice{font-family:'Noto Sans KR',sans-serif;color:var(--text2);font-size:12px}
 .item-del{background:none;border:none;cursor:pointer;color:var(--gray4);font-size:16px;padding:1px 5px;border-radius:3px;transition:color .12s;line-height:1}
@@ -1492,7 +1493,7 @@ function renderOptList(){
   if(optionItems.length===0){el.innerHTML='<div class="empty-hint">옵션을 추가해주세요</div>';return;}
   el.innerHTML=optionItems.map(function(it,i){
     return '<div class="item-row">'+
-      '<div class="ispec">'+groupBadge(it.groupId)+it.name+'</div>'+
+      '<div class="ispec">'+groupBadge(it.groupId)+it.name+(it.desc&&it.desc!=='-'?'<span class="idesc">'+it.desc+'</span>':'')+'</div>'+
       '<div class="qty-ctrl">'+
         '<button class="qty-btn" data-i="'+i+'" data-act="opt-dec">−</button>'+
         '<input class="qty-num" type="number" min="1" max="99" value="'+it.qty+'" data-i="'+i+'" data-type="opt">'+
