@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v53-option-tax-invoice';
+const CACHE = 'pepipepu-v54-option-only-save';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));

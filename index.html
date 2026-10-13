@@ -1765,7 +1765,7 @@ function showToast(msg, type){
 
 // ── localStorage 저장 ────────────────────────────────
 document.getElementById('saveBtn').addEventListener('click', function(){
-  if(!items.length){showToast('품목을 먼저 추가해주세요','error');return;}
+  if(!items.length && !optionItems.length){showToast('품목 또는 옵션을 먼저 추가해주세요','error');return;}
   var customer=document.getElementById('iCustomer').value||'(고객명 없음)';
   var customerProfile=saveCurrentCustomerProfile();
   var id='q_'+Date.now();
@@ -2749,7 +2749,7 @@ if(orderMobileBtn){
 }
 
 document.getElementById('btnExcel').addEventListener('click', function(){
-  if(!items.length){showToast('먼저 품목을 추가해주세요','error');return;}
+  if(!items.length && !optionItems.length){showToast('품목 또는 옵션을 먼저 추가해주세요','error');return;}
   var customer=document.getElementById('iCustomer').value||'견적서';
   var dateVal=document.getElementById('iDate').value;
   var dateStr=dateVal?(function(){var p=dateVal.split('-');return p[0]+'년 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일';})():'';
