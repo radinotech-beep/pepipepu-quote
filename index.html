@@ -2243,6 +2243,32 @@ var LOCAL_PROXY_ORIGIN = (location.hostname === '127.0.0.1' || location.hostname
 var TAX_PROXY_URL = LOCAL_PROXY_ORIGIN + '/issue-tax-invoice';
 var BIZREG_EXTRACT_URL = LOCAL_PROXY_ORIGIN + '/extract-bizreg';
 var ORDER_SEND_URL = LOCAL_PROXY_ORIGIN + '/send-order';
+var KAKAO_REST_API_KEY = 'aadef6444afbc6f232d1b348d1e0e420';
+
+async function fetchZipCode(address){
+  var query=String(address||'').trim();
+  if(!query) return '';
+  try{
+    var res=await fetch(
+      'https://dapi.kakao.com/v2/local/search/address.json?query='+encodeURIComponent(query),
+      {headers:{Authorization:'KakaoAK '+KAKAO_REST_API_KEY}}
+    );
+    if(!res.ok){
+      console.warn('우편번호 조회 실패:', res.status);
+      return '';
+    }
+    var data=await res.json();
+    if(data.documents&&data.documents.length>0){
+      var doc=data.documents[0];
+      return (doc.road_address&&doc.road_address.zone_no)
+        || (doc.address&&doc.address.zip_code)
+        || '';
+    }
+  }catch(e){
+    console.error('우편번호 조회 실패:', e);
+  }
+  return '';
+}
 var CUSTOMER_PROFILE_KEY = 'pepipepu_customer_profiles';
 
 function cleanBizNo(value){
@@ -2432,9 +2458,18 @@ function extractBizReg(file){
   }).then(function(data){
     var profile=normalizeBizExtract(data);
     applyCustomerProfile(profile);
+    var addressInput=document.getElementById('iCustomerAddress');
+    var zipcodeInput=document.getElementById('iCustomerZipcode');
+    var addressValue=(addressInput.value||'').trim();
     saveCurrentCustomerProfile();
     showBizStatus('자동 입력 완료. 정보를 확인하고 필요하면 수정해주세요.', 'ok');
     showToast('사업자등록증 정보를 입력했습니다', 'success');
+    fetchZipCode(addressValue).then(function(zip){
+      if(zip&&addressValue===(addressInput.value||'').trim()){
+        zipcodeInput.value=zip;
+        saveCurrentCustomerProfile();
+      }
+    });
   }).catch(function(err){
     var msg=err&&err.message?err.message:'사업자등록증 분석에 실패했습니다';
     if(String(msg).indexOf('Failed to fetch')>=0) msg='중계서버가 실행되지 않았습니다. PC에서 서버를 먼저 실행해주세요.';
