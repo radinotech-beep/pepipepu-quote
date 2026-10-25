@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v55-option-save-refresh';
+const CACHE = 'pepipepu-v56-manual-zipcode-search';
 const FILES = ['./index.html'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));

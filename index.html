@@ -172,6 +172,15 @@ select option{color:var(--text)}
 }
 .ipt:focus{outline:none;border-color:var(--mint)}
 .ipt::placeholder{color:var(--gray4)}
+.address-fields{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(0,1.2fr);gap:8px}
+.address-fields .fld{min-width:0}
+.zip-search-row{display:flex;gap:6px;align-items:stretch}
+.zip-search-row .ipt{flex:1;min-width:0;width:0}
+.zip-search-btn{flex:0 0 44px;width:44px;min-height:44px;border:1.5px solid var(--gray3);border-radius:var(--radius-xs);background:#fff;color:var(--text);font-size:18px;cursor:pointer}
+.zip-search-btn:hover{border-color:var(--mint);background:var(--mint-lt)}
+.zip-search-btn:focus-visible{outline:2px solid var(--mint);outline-offset:2px}
+.zip-search-btn:disabled{opacity:.6;cursor:wait}
+@media(max-width:420px){.address-fields{grid-template-columns:minmax(0,1fr)}}
 
 /* 색상 */
 .color-row{display:flex;gap:8px}
@@ -818,8 +827,8 @@ input.qty-num[type=number]{-moz-appearance:textfield}
         <div class="fld"><span class="lbl">업종</span><input type="text" class="ipt" id="iCustomerCategory" placeholder="예) 앵글선반"></div>
       </div>
       <div class="fld"><span class="lbl">전화번호</span><input type="tel" class="ipt" id="iCustomerPhone1" placeholder="예) 010-1234-5678"></div>
-      <div style="display:grid;grid-template-columns:.7fr 1.3fr;gap:8px">
-        <div class="fld"><span class="lbl">우편번호</span><input type="text" class="ipt" id="iCustomerZipcode" inputmode="numeric" maxlength="5" placeholder="5자리"></div>
+      <div class="address-fields">
+        <div class="fld"><span class="lbl">우편번호</span><div class="zip-search-row"><input type="text" class="ipt" id="iCustomerZipcode" inputmode="numeric" maxlength="5" placeholder="5자리"><button type="button" class="zip-search-btn" id="btnZipSearch" title="주소로 우편번호 검색" aria-label="주소로 우편번호 검색">🔍</button></div></div>
         <div class="fld"><span class="lbl">주소</span><input type="text" class="ipt" id="iCustomerAddress" placeholder="배송지 주소"></div>
       </div>
       <div class="fld"><span class="lbl">배송 메모</span><input type="text" class="ipt" id="iDeliveryMemo" placeholder="예) 배송 전 연락 바랍니다"></div>
@@ -2269,6 +2278,38 @@ async function fetchZipCode(address){
   }
   return '';
 }
+document.getElementById('btnZipSearch').addEventListener('click', async function(){
+  if(this.disabled) return;
+  var addressInput=document.getElementById('iCustomerAddress');
+  var address=addressInput.value.trim();
+  if(!address){
+    alert('주소를 먼저 입력해주세요.');
+    addressInput.focus();
+    return;
+  }
+  this.textContent='⏳';
+  this.disabled=true;
+  this.setAttribute('aria-busy','true');
+  try{
+    var zip=await fetchZipCode(address);
+    if(address!==addressInput.value.trim()){
+      alert('주소가 변경됐습니다. 다시 검색해주세요.');
+      return;
+    }
+    if(zip){
+      document.getElementById('iCustomerZipcode').value=zip;
+      saveCurrentCustomerProfile();
+    }else{
+      alert('우편번호를 찾을 수 없습니다. 주소를 확인해주세요.');
+    }
+  }catch(error){
+    alert('우편번호 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+  }finally{
+    this.textContent='🔍';
+    this.disabled=false;
+    this.removeAttribute('aria-busy');
+  }
+});
 var CUSTOMER_PROFILE_KEY = 'pepipepu_customer_profiles';
 
 function cleanBizNo(value){
@@ -3137,6 +3178,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=55-option-save-refresh',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=56-manual-zipcode-search',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
 </body>
 </html>
