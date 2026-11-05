@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v65-statement-tax-columns';
+const CACHE = 'pepipepu-v66-quote-totals';
 const FILES = ['./index.html', './stamp.png?v=60-supplied-stamp'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
