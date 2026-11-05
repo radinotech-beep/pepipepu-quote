@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v60-supplied-stamp';
+const CACHE = 'pepipepu-v61-firestore-sync';
 const FILES = ['./index.html', './stamp.png?v=60-supplied-stamp'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));

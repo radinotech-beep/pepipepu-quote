@@ -2,6 +2,37 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<script type="module">
+let firestoreLoading=false;
+async function initializeQuoteFirestore(){
+  if(firestoreLoading||window._db||navigator.onLine===false) return;
+  firestoreLoading=true;
+  try {
+    const [{ initializeApp }, fs] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js')
+    ]);
+    const app = initializeApp({
+      apiKey: 'AIzaSyCopAz_2PyqIB0v6ZG588SHLTcann3IFdI',
+      authDomain: 'pepipepu-quote.firebaseapp.com',
+      projectId: 'pepipepu-quote',
+      storageBucket: 'pepipepu-quote.firebasestorage.app',
+      messagingSenderId: '16217492824',
+      appId: '1:16217492824:web:542b65486ccce31a70e92d'
+    });
+    window._db = fs.getFirestore(app);
+    window._fsLib = fs;
+    window.dispatchEvent(new Event('firestoreReady'));
+  } catch (error) {
+    window.dispatchEvent(new Event('firestoreUnavailable'));
+    setTimeout(initializeQuoteFirestore,30000);
+  } finally {
+    firestoreLoading=false;
+  }
+}
+window.addEventListener('online',initializeQuoteFirestore);
+initializeQuoteFirestore();
+</script>
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -151,6 +182,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:#eef3f2;color:var(--text);
 .sec-box{background:var(--gray1);border:1px solid var(--gray2);border-radius:var(--radius-sm);padding:1rem 1rem 0.75rem}
 
 .fld{display:flex;flex-direction:column;gap:5px}
+.cloud-sync-status{font-size:11px;color:var(--text2);margin-top:5px;line-height:1.5;overflow-wrap:anywhere}
 .lbl{font-size:11px;font-weight:600;color:var(--text2)}
 select{
   width:100%;padding:9px 12px;font-size:14px;font-family:inherit;
@@ -834,7 +866,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   <div>
     <p class="sec-title">고객 정보</p>
     <div class="sec-box" style="display:flex;flex-direction:column;gap:8px">
-      <div class="fld"><span class="lbl">고객명 / 업체명</span><input type="text" class="ipt" id="iCustomer" placeholder="예) 홍길동 / (주)OOO"></div>
+      <div class="fld"><span class="lbl">고객명 / 업체명</span><input type="text" class="ipt" id="iCustomer" list="customerSuggestions" placeholder="예) 홍길동 / (주)OOO"><datalist id="customerSuggestions"></datalist><div class="cloud-sync-status" id="cloudSyncStatus" role="status">동기화 연결 대기</div></div>
       <div class="biz-upload-row">
         <input type="file" id="bizRegFile" accept="image/*,application/pdf,.pdf" capture="environment" style="display:none">
         <button type="button" class="biz-upload-btn" id="btnBizRegUpload">사업자등록증 업로드</button>
@@ -1160,6 +1192,7 @@ var useGroups=false, groups=[], activeGroupId='';
 function fmt(n){return String.fromCharCode(8361)+Math.round(n).toLocaleString('ko-KR');}
 function sup(v){return Math.round(v/1.1);}
 function tx(v){return v-sup(v);}
+function escapeHtml(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
 function groupCode(n){var s='', x=n; do{s=String.fromCharCode(65+(x%26))+s; x=Math.floor(x/26)-1;}while(x>=0); return s;}
 function makeGroup(){
   var id='grp_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
@@ -1182,7 +1215,7 @@ function groupInfo(id, list){
 function groupBadge(id){
   if(!useGroups || !id) return '';
   var g=groupInfo(id);
-  return g?'<span class="group-badge">'+g.label+'</span>':'';
+  return g?'<span class="group-badge">'+escapeHtml(g.label)+'</span>':'';
 }
 function renderGroupControls(){
   var chk=document.getElementById('useGroups'), panel=document.getElementById('groupPanel'), tabs=document.getElementById('groupTabs');
@@ -1192,8 +1225,8 @@ function renderGroupControls(){
   if(useGroups) ensureGroup();
   tabs.innerHTML=groups.map(function(g){
     return '<div class="group-row">'+
-      '<button type="button" class="group-tab '+(g.id===activeGroupId?'on':'')+'" data-gid="'+g.id+'">'+(g.code||'')+'그룹</button>'+
-      '<input class="group-alias" data-gid="'+g.id+'" value="'+(g.alias||'').replace(/"/g,'&quot;')+'" placeholder="별칭 선택 입력">'+
+      '<button type="button" class="group-tab '+(g.id===activeGroupId?'on':'')+'" data-gid="'+escapeHtml(g.id)+'">'+escapeHtml(g.code||'')+'그룹</button>'+
+      '<input class="group-alias" data-gid="'+escapeHtml(g.id)+'" value="'+escapeHtml(g.alias||'')+'" placeholder="별칭 선택 입력">'+
     '</div>';
   }).join('');
   tabs.querySelectorAll('.group-tab').forEach(function(btn){
@@ -1290,7 +1323,7 @@ function renderItems(){
   cnt.textContent=items.length+'개';
   el.innerHTML=items.map(function(it,i){
     return '<div class="item-row">'+
-      '<div class="ispec">'+groupBadge(it.groupId)+it.color+' W'+it.w+'×D'+it.d+'×H'+it.h+' '+it.tier+'단</div>'+
+      '<div class="ispec">'+groupBadge(it.groupId)+escapeHtml(it.color)+' W'+it.w+'×D'+it.d+'×H'+it.h+' '+it.tier+'단</div>'+
       '<div class="qty-ctrl">'+
         '<button class="qty-btn" data-i="'+i+'" data-act="item-dec">−</button>'+
         '<input class="qty-num" type="number" min="1" max="99" value="'+it.qty+'" data-i="'+i+'" data-type="item">'+
@@ -1522,7 +1555,7 @@ function renderOptList(){
   if(optionItems.length===0){el.innerHTML='<div class="empty-hint">옵션을 추가해주세요</div>';return;}
   el.innerHTML=optionItems.map(function(it,i){
     return '<div class="item-row">'+
-      '<div class="ispec">'+groupBadge(it.groupId)+it.name+(it.desc&&it.desc!=='-'?'<span class="idesc">'+it.desc+'</span>':'')+'</div>'+
+      '<div class="ispec">'+groupBadge(it.groupId)+escapeHtml(it.name)+(it.desc&&it.desc!=='-'?'<span class="idesc">'+escapeHtml(it.desc)+'</span>':'')+'</div>'+
       '<div class="qty-ctrl">'+
         '<button class="qty-btn" data-i="'+i+'" data-act="opt-dec">−</button>'+
         '<input class="qty-num" type="number" min="1" max="99" value="'+it.qty+'" data-i="'+i+'" data-type="opt">'+
@@ -1673,7 +1706,7 @@ document.getElementById('genBtn').addEventListener('click',function(){
     return {
       groupId:it.groupId||'',
       amount:it.vatPer*it.qty,
-      html:'<tr><td>앵글선반</td><td class="spec">W'+it.w+'×D'+it.d+'×H'+it.h+'×'+it.tier+'단 ('+it.color+')</td>'+
+      html:'<tr><td>앵글선반</td><td class="spec">W'+it.w+'×D'+it.d+'×H'+it.h+'×'+it.tier+'단 ('+escapeHtml(it.color)+')</td>'+
         '<td>'+it.qty+'</td><td class="num">'+fmt(sp)+'</td><td class="num">'+fmt(sp*it.qty)+'</td><td class="tax">'+fmt(t*it.qty)+'</td></tr>'
     };
   }
@@ -1681,7 +1714,7 @@ document.getElementById('genBtn').addEventListener('click',function(){
     return {
       groupId:o.groupId||'',
       amount:o.price*o.qty,
-      html:'<tr><td>'+o.name+'</td><td class="spec">'+o.desc+'</td>'+
+      html:'<tr><td>'+escapeHtml(o.name)+'</td><td class="spec">'+escapeHtml(o.desc)+'</td>'+
         '<td>'+o.qty+'</td><td class="num">'+fmt(sup(o.price))+'</td>'+
         '<td class="num">'+fmt(sup(o.price)*o.qty)+'</td><td class="tax">'+fmt(tx(o.price)*o.qty)+'</td></tr>'
     };
@@ -1704,7 +1737,7 @@ document.getElementById('genBtn').addEventListener('click',function(){
       if(!groupRows.length) return;
       used[g.id]=true;
       var total=groupRows.reduce(function(a,r){return a+r.amount;},0);
-      html+='<tr class="group-hd"><td colspan="6">'+groupInfo(g.id).label+'</td></tr>'+
+      html+='<tr class="group-hd"><td colspan="6">'+escapeHtml(groupInfo(g.id).label)+'</td></tr>'+
         groupRows.map(function(r){return r.html;}).join('')+
         '<tr class="group-sub"><td colspan="4">소계</td><td class="num" colspan="2">'+fmt(total)+'</td></tr>';
     });
@@ -1736,7 +1769,7 @@ document.getElementById('genBtn').addEventListener('click',function(){
         '</div>'+
       '</div>'+
       '<div class="qmeta">'+
-        '<div><div class="qdate">발행일  '+dateStr+'</div><div class="qcustomer">'+customer+' 귀하</div></div>'+
+        '<div><div class="qdate">발행일  '+dateStr+'</div><div class="qcustomer">'+escapeHtml(customer)+' 귀하</div></div>'+
         '<div class="qtb"><div class="tl">합계금액 (VAT 포함)</div><div class="tv">'+fmt(final)+'</div></div>'+
       '</div>'+
     '</div>'+
@@ -1821,6 +1854,7 @@ document.getElementById('saveBtn').addEventListener('click', function(){
     var idx=JSON.parse(localStorage.getItem('quote_index')||'[]');
     idx.unshift(id);
     localStorage.setItem('quote_index', JSON.stringify(idx));
+    saveQuoteToFirestore(data);
     var btn=document.getElementById('saveBtn');
     btn.textContent='✅ 저장 완료!'; btn.className='save-btn saved';
     setTimeout(function(){btn.textContent='💾 견적서 저장';btn.className='save-btn';},2000);
@@ -1859,6 +1893,7 @@ function getStoredQuote(id){
 function saveStoredQuote(q){
   if(!q||!q.id) return;
   localStorage.setItem(q.id, JSON.stringify(q));
+  saveQuoteToFirestore(q);
 }
 
 function markOrderSent(quoteId, data, payload){
@@ -1912,9 +1947,9 @@ function loadLibrary(){
     var orderSent=q.orderSent&&q.orderSent.sentAt;
     var orderSentStr=orderSent?formatDateTime(orderSent):'';
     return '<div class="lib-card">'+
-      '<div class="lib-card-top"><div class="lib-card-customer">'+q.customer+'</div><div class="lib-card-date">'+savedStr+' 저장</div></div>'+
+      '<div class="lib-card-top"><div class="lib-card-customer">'+escapeHtml(q.customer)+'</div><div class="lib-card-date">'+savedStr+' 저장</div></div>'+
       '<div class="lib-card-summary">📅 '+dateStr+'<br>📦 '+itemSum+optSum+groupSum+(q.discount>0?' 💰 할인 ₩'+q.discount.toLocaleString():'')+'</div>'+
-      (taxIssued?'<div class="lib-issue-status">세금계산서 발행됨 · '+taxIssuedStr+(taxKey?'<span>발행번호 '+taxKey+'</span>':'')+'</div>':'')+
+      (taxIssued?'<div class="lib-issue-status">세금계산서 발행됨 · '+taxIssuedStr+(taxKey?'<span>발행번호 '+escapeHtml(taxKey)+'</span>':'')+'</div>':'')+
       (orderSent?'<div class="lib-issue-status order">발주 전송됨 · '+orderSentStr+'</div>':'')+
       '<div class="lib-card-bottom">'+
         '<div class="lib-card-total">₩'+q.finalTotal.toLocaleString('ko-KR')+'</div>'+
@@ -1957,6 +1992,7 @@ function loadQuote(id){
 function deleteQuote(id, e){
   e.stopPropagation();
   if(!confirm('이 견적서를 삭제할까요?')) return;
+  deleteQuoteFromFirestore((getStoredQuote(id)||{})._firestoreId || id);
   localStorage.removeItem(id);
   var idx=JSON.parse(localStorage.getItem('quote_index')||'[]');
   idx=idx.filter(function(k){return k!==id;});
@@ -2353,8 +2389,22 @@ function getCustomerProfiles(){
 function saveCustomerProfile(profile){
   if(!profile || !profile.companyName) return;
   var profiles=getCustomerProfiles();
-  profiles[profile.companyName]=profile;
+  var previous=profiles[profile.companyName];
+  Object.defineProperty(profiles,profile.companyName,{value:profile,enumerable:true,configurable:true,writable:true});
   localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(profiles));
+  saveCustomerToFirestore(profile, previous);
+  renderCustomerList();
+}
+
+function renderCustomerList(){
+  var list=document.getElementById('customerSuggestions');
+  if(!list) return;
+  list.replaceChildren();
+  Object.keys(getCustomerProfiles()).sort().forEach(function(name){
+    var option=document.createElement('option');
+    option.value=name;
+    list.appendChild(option);
+  });
 }
 
 function collectCustomerProfile(){
@@ -2931,6 +2981,191 @@ document.getElementById('btnExcel').addEventListener('click', function(){
   URL.revokeObjectURL(url);
   showToast('엑셀 파일 다운로드됐어요!','success');
 });
+// Local storage remains the source for the UI; cloud changes update it without
+// going through the user-save hooks, so snapshots never create write loops.
+var quoteCloudSync=(function(){
+  var queueKey='pepipepu_firestore_outbox_v1';
+  var ready=false, starting=false, flushing=false, retryTimer=null, listeners=[];
+  var own=Object.prototype.hasOwnProperty;
+  function status(text){
+    var el=document.getElementById('cloudSyncStatus');
+    if(el) el.textContent=text;
+    window._cloudSyncStatus=text;
+  }
+  function pending(){return JSON.parse(localStorage.getItem(queueKey)||'{}');}
+  function persist(queue){localStorage.setItem(queueKey, JSON.stringify(queue));}
+  function token(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);}
+  function docId(value){
+    var id=encodeURIComponent(String(value));
+    return /^(\.{1,2}|__.*__)$/.test(id)?'name_'+id:id;
+  }
+  function customerId(profile){return docId(cleanBizNo(profile.businessNumber||profile.bizNo)||profile.companyName||profile.name);}
+  function quoteId(quote){return quote._firestoreId||docId(quote.quoteNo||quote.id);}
+  function later(){
+    if(!retryTimer) retryTimer=setTimeout(function(){retryTimer=null;ready?flush():start();},30000);
+  }
+  function failed(error){
+    status(navigator.onLine?'동기화 실패 · 기기 저장 유지':'오프라인 · 기기 저장 유지');
+    console.warn('Firestore sync:', error&&error.code||'connection-unavailable');
+    later();
+  }
+  function enqueue(kind,id,data,deleted){
+    var queue=pending(), op=token();
+    queue[kind+'/'+id]={kind:kind,id:id,op:op,data:deleted
+      ?{_deleted:true,_syncOperation:op,_syncUpdatedAt:Date.now()}
+      :Object.assign(JSON.parse(JSON.stringify(data)),{_deleted:false,_syncOperation:op,_syncUpdatedAt:Date.now()})};
+    persist(queue);
+    status(navigator.onLine?'동기화 대기':'오프라인 · 기기 저장 유지');
+    flush();
+  }
+  async function records(kind){
+    if(!window._db) throw new Error('Firestore unavailable');
+    var lib=window._fsLib;
+    var snapshot=await lib.getDocs(lib.collection(window._db,kind));
+    if(snapshot.metadata&&snapshot.metadata.fromCache) throw new Error('Server unavailable');
+    return snapshot.docs.map(function(d){return {id:d.id,data:d.data()};});
+  }
+  function sameCustomer(a,b){
+    var ab=cleanBizNo(a.businessNumber||a.bizNo),bb=cleanBizNo(b.businessNumber||b.bizNo);
+    return (ab&&bb&&ab===bb)||String(a.companyName||a.name||'')===String(b.companyName||b.name||'');
+  }
+  function refresh(){renderCustomerList();loadLibrary();updateBadge();}
+  function applyCustomer(id,data){
+    var profiles=getCustomerProfiles();
+    var profile=Object.assign({},data,{_firestoreId:id});
+    profile.companyName=String(profile.companyName||profile.name||'');
+    profile.businessNumber=cleanBizNo(profile.businessNumber||profile.bizNo);
+    if(!data._deleted&&!profile.companyName) return;
+    Object.keys(profiles).forEach(function(name){
+      var old=profiles[name];
+      if((old._firestoreId||customerId(old))===id||(!data._deleted&&sameCustomer(old,profile))) delete profiles[name];
+    });
+    if(!data._deleted) Object.defineProperty(profiles,profile.companyName,{value:profile,enumerable:true,configurable:true,writable:true});
+    localStorage.setItem(CUSTOMER_PROFILE_KEY,JSON.stringify(profiles));
+    // Legacy business-number entries must not resurrect a remotely deleted name.
+    var legacy=JSON.parse(localStorage.getItem('pepipepu_customer_biznos')||'{}');
+    Object.keys(legacy).forEach(function(name){
+      if(customerId({companyName:name,businessNumber:legacy[name]})===id) delete legacy[name];
+    });
+    localStorage.setItem('pepipepu_customer_biznos',JSON.stringify(legacy));
+  }
+  function applyQuote(id,data){
+    var index=JSON.parse(localStorage.getItem('quote_index')||'[]');
+    if(data._deleted){
+      index=index.filter(function(key){
+        var quote=getStoredQuote(key);
+        if(quote&&(quoteId(quote)===id)){localStorage.removeItem(key);return false;}
+        return true;
+      });
+    }else{
+      if(!Array.isArray(data.items)||!Number.isFinite(data.finalTotal)) return;
+      if(data.date&&!/^\d{4}-\d{2}-\d{2}$/.test(data.date)) return;
+      if(!data.items.every(function(item){return item&&['w','d','h','tier','qty','vatPer'].every(function(k){return Number.isFinite(item[k]);});})) return;
+      if(data.optionItems&&(!Array.isArray(data.optionItems)||!data.optionItems.every(function(item){return item&&Number.isFinite(item.qty)&&Number.isFinite(item.price);}))) return;
+      var quote=Object.assign({},data,{_firestoreId:id});
+      quote.id=/^q_[A-Za-z0-9_-]+$/.test(data.id||'')?data.id:'q_cloud_'+encodeURIComponent(id);
+      quote.customer=String(quote.customer||'(고객명 없음)');
+      quote.optionItems=Array.isArray(quote.optionItems)?quote.optionItems:[];
+      quote.groups=Array.isArray(quote.groups)?quote.groups:[];
+      localStorage.setItem(quote.id,JSON.stringify(quote));
+      if(index.indexOf(quote.id)<0) index.push(quote.id);
+    }
+    index.sort(function(a,b){return String((getStoredQuote(b)||{}).savedAt||'').localeCompare(String((getStoredQuote(a)||{}).savedAt||''));});
+    localStorage.setItem('quote_index',JSON.stringify(index));
+  }
+  function apply(kind,entries){
+    var queue=pending();
+    entries.forEach(function(entry){
+      if(own.call(queue,kind+'/'+entry.id)) return;
+      if(kind==='customers') applyCustomer(entry.id,entry.data);
+      else applyQuote(entry.id,entry.data);
+    });
+  }
+  async function flush(){
+    if(flushing||!ready||navigator.onLine===false) return;
+    flushing=true;
+    try{
+      while(ready&&navigator.onLine!==false){
+        var queue=pending(), keys=Object.keys(queue);
+        if(!keys.length){status('클라우드 동기화 완료');break;}
+        var key=keys[0],entry=queue[key],lib=window._fsLib;
+        status('클라우드 동기화 중');
+        await lib.setDoc(lib.doc(window._db,entry.kind,entry.id),entry.data);
+        queue=pending();
+        if(queue[key]&&queue[key].op===entry.op){delete queue[key];persist(queue);}
+      }
+    }catch(error){failed(error);}
+    finally{flushing=false;}
+  }
+  async function start(){
+    if(starting||ready||!window._db||navigator.onLine===false) return;
+    starting=true;
+    status('클라우드 연결 중');
+    try{
+      var results=await Promise.all([records('customers'),records('quotes')]);
+      // Capture legacy local data before cloud-first merging.
+      var localCustomers=Object.values(getCustomerProfiles());
+      var localQuotes=JSON.parse(localStorage.getItem('quote_index')||'[]').map(getStoredQuote).filter(Boolean);
+      apply('customers',results[0]);apply('quotes',results[1]);
+      localCustomers.forEach(function(profile){
+        var id=profile._firestoreId||customerId(profile);
+        var exists=results[0].some(function(record){return record.id===id||(!record.data._deleted&&sameCustomer(profile,record.data));});
+        if(!exists&&!own.call(pending(),'customers/'+id)) enqueue('customers',id,profile,false);
+      });
+      localQuotes.forEach(function(quote){
+        var id=quoteId(quote);
+        if(!results[1].some(function(record){return record.id===id;})&&!own.call(pending(),'quotes/'+id)) enqueue('quotes',id,quote,false);
+      });
+      ready=true;
+      ['customers','quotes'].forEach(function(kind){
+        listeners.push(window._fsLib.onSnapshot(window._fsLib.collection(window._db,kind),function(snapshot){
+          try{
+            if(snapshot.docChanges) apply(kind,snapshot.docChanges().filter(function(change){return change.type==='removed';}).map(function(change){return {id:change.doc.id,data:{_deleted:true}};}));
+            apply(kind,snapshot.docs.map(function(d){return {id:d.id,data:d.data()};}));
+            refresh();
+          }catch(error){failed(error);}
+        },function(error){
+          listeners.splice(0).forEach(function(stop){stop();});ready=false;failed(error);
+        }));
+      });
+      refresh();flush();
+    }catch(error){failed(error);}
+    finally{starting=false;}
+  }
+  function saveCustomer(profile,previous){
+    if(!profile||!(profile.companyName||profile.name)) return;
+    var id=customerId(profile);
+    enqueue('customers',id,profile,false);
+    if(previous){
+      var oldId=previous._firestoreId||customerId(previous);
+      if(oldId!==id) enqueue('customers',oldId,null,true);
+    }
+  }
+  window.addEventListener('firestoreReady',start);
+  window.addEventListener('firestoreUnavailable',function(){failed();});
+  window.addEventListener('offline',function(){status('오프라인 · 기기 저장 유지');});
+  window.addEventListener('online',function(){ready?flush():start();});
+  window.addEventListener('storage',function(event){
+    if(event.key===queueKey) flush();
+    if(event.key===CUSTOMER_PROFILE_KEY||event.key==='quote_index') refresh();
+  });
+  renderCustomerList();
+  if(window._db) start();
+  if(navigator.onLine===false) status('오프라인 · 기기 저장 유지');
+  return {saveCustomer:saveCustomer,saveQuote:function(quote){enqueue('quotes',quoteId(quote),quote,false);},
+    remove:function(kind,id){
+      enqueue(kind,id,null,true);
+      if(kind==='customers') applyCustomer(id,{_deleted:true});
+      else applyQuote(id,{_deleted:true});
+      refresh();
+    },records:records,flush:flush,start:start};
+})();
+function saveCustomerToFirestore(profile,previous){quoteCloudSync.saveCustomer(profile,previous);}
+async function loadCustomersFromFirestore(){return (await quoteCloudSync.records('customers')).filter(function(r){return !r.data._deleted;}).map(function(r){return r.data;});}
+function saveQuoteToFirestore(quote){quoteCloudSync.saveQuote(quote);}
+async function loadQuotesFromFirestore(){return (await quoteCloudSync.records('quotes')).filter(function(r){return !r.data._deleted;}).map(function(r){return r.data;});}
+function deleteCustomerFromFirestore(id){quoteCloudSync.remove('customers',id);}
+function deleteQuoteFromFirestore(id){quoteCloudSync.remove('quotes',id);}
 </script>
 <script type="text/plain" id="old-three-importmap-disabled">
 {
@@ -3199,6 +3434,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=60-supplied-stamp',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=61-firestore-sync',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
 </body>
 </html>
