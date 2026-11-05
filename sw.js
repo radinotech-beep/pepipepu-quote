@@ -1,5 +1,5 @@
-const CACHE = 'pepipepu-v59-original-stamp';
-const FILES = ['./index.html', './stamp.png'];
+const CACHE = 'pepipepu-v60-supplied-stamp';
+const FILES = ['./index.html', './stamp.png?v=60-supplied-stamp'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
   self.skipWaiting();
