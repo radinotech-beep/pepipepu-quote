@@ -2198,10 +2198,10 @@ function collectTradeStatementData(){
   var saved=currentQuoteId?getStoredQuote(currentQuoteId):null;
   var rows=items.map(function(item){
     return {name:'앵글선반',spec:'W'+item.w+'×D'+item.d+'×H'+item.h+'×'+item.tier+'단 ('+item.color+')',
-      qty:item.qty,unitPrice:sup(item.vatPer),amount:sup(item.vatPer)*item.qty,groupId:item.groupId||''};
+      qty:item.qty,unitPrice:sup(item.vatPer),amount:sup(item.vatPer)*item.qty,tax:tx(item.vatPer)*item.qty,groupId:item.groupId||''};
   }).concat(optionItems.map(function(option){
     return {name:option.name,spec:option.desc||'-',qty:option.qty,
-      unitPrice:sup(option.price),amount:sup(option.price)*option.qty,groupId:option.groupId||''};
+      unitPrice:sup(option.price),amount:sup(option.price)*option.qty,tax:tx(option.price)*option.qty,groupId:option.groupId||''};
   }));
   var discount=parseInt(document.getElementById('iDiscount').value,10)||0;
   var subtotal=calcSub(),total=subtotal-discount,supply=sup(total);
@@ -2210,7 +2210,8 @@ function collectTradeStatementData(){
     date:document.getElementById('iDate').value||invoiceTodayISO(),
     useGroups:useGroups,groups:JSON.parse(JSON.stringify(groups)),
     subtotal:subtotal,discount:discount,supply:supply,tax:total-supply,total:total,
-    supplyAdjustment:supply-rows.reduce(function(sum,row){return sum+row.amount;},0)};
+    supplyAdjustment:supply-rows.reduce(function(sum,row){return sum+row.amount;},0),
+    taxAdjustment:total-supply-rows.reduce(function(sum,row){return sum+row.tax;},0)};
 }
 
 function buildTradeStatementHtml(data){
@@ -2219,15 +2220,15 @@ function buildTradeStatementHtml(data){
   var rowNumber=0;
   function rowHtml(row){
     return '<tr class="item-row"><td>'+ ++rowNumber+'</td><td class="item-name">'+esc(row.name)+'</td><td class="spec">'+esc(row.spec)+'</td>'+
-      '<td>'+esc(row.qty)+'</td><td class="num">'+number(row.unitPrice)+'</td><td class="num">'+number(row.amount)+'</td></tr>';
+      '<td>'+esc(row.qty)+'</td><td class="num">'+number(row.unitPrice)+'</td><td class="num">'+number(row.amount)+'</td><td class="num">'+number(row.tax)+'</td></tr>';
   }
   var body='';
   if(data.useGroups){
     var used={};
     function section(label,rows){
       if(!rows.length) return;
-      body+='<tr class="group-heading"><td colspan="6">'+esc(label)+'</td></tr>'+rows.map(rowHtml).join('')+
-        '<tr class="group-total"><td colspan="5">소계 (공급가액)</td><td class="num">'+number(rows.reduce(function(sum,row){return sum+row.amount;},0))+'</td></tr>';
+      body+='<tr class="group-heading"><td colspan="7">'+esc(label)+'</td></tr>'+rows.map(rowHtml).join('')+
+        '<tr class="group-total"><td colspan="5">소계</td><td class="num">'+number(rows.reduce(function(sum,row){return sum+row.amount;},0))+'</td><td class="num">'+number(rows.reduce(function(sum,row){return sum+row.tax;},0))+'</td></tr>';
     }
     data.groups.forEach(function(group){
       used[group.id]=true;
@@ -2235,8 +2236,8 @@ function buildTradeStatementHtml(data){
     });
     section('그룹 없음',data.rows.filter(function(row){return !used[row.groupId];}));
   }else body=data.rows.map(rowHtml).join('');
-  if(data.supplyAdjustment){
-    body+='<tr class="adjustment"><td colspan="5">'+(data.discount>0?'특별할인 및 원단위 조정 (공급가액)':'원단위 조정 (공급가액)')+'</td><td class="num">'+number(data.supplyAdjustment)+'</td></tr>';
+  if(data.supplyAdjustment||data.taxAdjustment){
+    body+='<tr class="adjustment"><td colspan="5">'+(data.discount>0?'특별할인 (VAT 포함 '+number(data.discount)+'원) 및 원단위 조정':'원단위 조정')+'</td><td class="num">'+number(data.supplyAdjustment)+'</td><td class="num">'+number(data.taxAdjustment)+'</td></tr>';
   }
   function party(title,info,supplier){
     var bizNo=String(info.businessNumber||'').replace(/[^0-9]/g,'');
@@ -2249,25 +2250,24 @@ function buildTradeStatementHtml(data){
   return '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
     '<title>'+esc('거래명세표_'+data.customer.companyName+'_'+data.date)+'</title><style>'+
     '*{box-sizing:border-box}body{margin:0;background:#fff;color:#111;font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:12px;line-height:1.5;letter-spacing:0}'+
-    'main{width:100%;max-width:186mm;margin:20px auto;padding:0}h1{font-size:25px;text-align:center;margin:0 0 16px;font-weight:700}'+
+    'main{width:calc(100% - 2px);max-width:184mm;margin:20px auto;padding:0 1px}h1{font-size:25px;text-align:center;margin:0 0 16px;font-weight:700}'+
     '.meta{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;overflow-wrap:anywhere}.parties{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border:1px solid #222;border-bottom:0;break-inside:avoid}'+
     '.party{position:relative;padding:10px;min-width:0}.party:first-child{border-right:1px solid #222}.party h2{text-align:center;font-size:13px;border-bottom:1px solid #888;margin:0 0 8px;padding:0 0 6px}'+
     '.party dl{margin:0}.party dl>div{display:grid;grid-template-columns:42px minmax(0,1fr);gap:5px;margin:3px 0}.party dt{font-weight:700}.party dd{margin:0;overflow-wrap:anywhere}'+
     '.supplier dl{padding-right:82px}.stamp{position:absolute;right:8px;top:52px;width:76px;height:76px;object-fit:contain;opacity:.85;pointer-events:none}'+
-    'table{width:100%;table-layout:fixed;border-collapse:collapse}th,td{border:1px solid #333;padding:6px 5px;text-align:center;vertical-align:middle;overflow-wrap:anywhere}'+
+    'table{width:100%;max-width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0}th,td{border:0;border-right:1px solid #333;border-bottom:1px solid #333;padding:6px 5px;text-align:center;vertical-align:middle;overflow-wrap:anywhere}tr>:first-child{border-left:1px solid #333}thead th{border-top:1px solid #333}'+
     'th{background:#f0f0f0;font-size:11px}thead{display:table-header-group}tr{break-inside:avoid;page-break-inside:avoid}.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.item-name,.spec{text-align:left}'+
     '.group-heading td{text-align:left;font-weight:700;background:#f4f4f4}.group-total td{font-weight:700}.adjustment td:first-child{text-align:right}'+
-    '.totals{width:290px;max-width:100%;margin:12px 0 0 auto;break-inside:avoid;border:1px solid #222;padding:9px 12px}.totals>div{display:flex;justify-content:space-between;gap:16px;padding:3px 0}.totals .grand{border-top:1px solid #777;font-size:16px;font-weight:700;margin-top:5px;padding-top:8px}'+
-    '.discount{font-size:11px;color:#444}@page{size:A4 portrait;margin:12mm}'+
+    '.statement-summary{break-inside:avoid;page-break-inside:avoid}.statement-summary th{text-align:right;font-size:12px}.statement-summary td{font-weight:700}.statement-summary .grand th,.statement-summary .grand td{font-size:15px;background:#f4f4f4}'+
+    '@page{size:A4 portrait;margin:12mm}'+
     '@media screen{main{padding:0 14px}}@media screen and (max-width:600px){body{font-size:11px}.parties{grid-template-columns:minmax(0,1fr)}.party:first-child{border-right:0;border-bottom:1px solid #222}th,td{padding:5px 2px;font-size:10px}.num{white-space:normal}}'+
-    '@media print{main{margin:0;max-width:none;padding:0}body{margin:0}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'+
+    '@media print{main{margin:0 auto;max-width:184mm;padding:0 1px}body{margin:0}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'+
     '</style></head><body><main><h1>거 래 명 세 표</h1><div class="meta"><span>No. '+esc(data.quoteNo)+'</span><span>작성일자: '+esc(data.date)+'</span></div>'+
     '<div class="parties">'+party('공 급 자',data.supplier,true)+party('공급받는자',data.customer,false)+'</div>'+
-    '<table><colgroup><col style="width:6%"><col style="width:18%"><col style="width:30%"><col style="width:8%"><col style="width:18%"><col style="width:20%"></colgroup>'+
-    '<thead><tr><th>No</th><th>품목</th><th>규격</th><th>수량</th><th>단가 (공급가)</th><th>금액 (공급가)</th></tr></thead><tbody>'+body+'</tbody></table>'+
-    '<section class="totals">'+(data.discount>0?'<div class="discount"><span>특별할인 (VAT 포함)</span><span>- '+number(data.discount)+'원</span></div>':'')+
-    '<div><span>공급가액</span><span>'+number(data.supply)+'원</span></div><div><span>세액</span><span>'+number(data.tax)+'원</span></div>'+
-    '<div class="grand"><span>합계금액</span><span>'+number(data.total)+'원</span></div></section></main></body></html>';
+    '<table><colgroup><col style="width:5%"><col style="width:17%"><col style="width:26%"><col style="width:7%"><col style="width:15%"><col style="width:17%"><col style="width:13%"></colgroup>'+
+    '<thead><tr><th>No</th><th>품목</th><th>규격</th><th>수량</th><th>단가 (공급가)</th><th>금액 (공급가)</th><th>세액</th></tr></thead><tbody>'+body+'</tbody>'+
+    '<tbody class="statement-summary"><tr class="supply-tax-total"><th colspan="5" scope="row">합계</th><td class="num">'+number(data.supply)+'</td><td class="num">'+number(data.tax)+'</td></tr>'+
+    '<tr class="grand"><th colspan="5" scope="row">합계금액 (VAT 포함)</th><td colspan="2" class="num">'+number(data.total)+'원</td></tr></tbody></table></main></body></html>';
 }
 
 var pendingTradeStatement=null;
@@ -3674,6 +3674,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=64-statement-date',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=65-statement-tax-columns',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
 </body>
 </html>
