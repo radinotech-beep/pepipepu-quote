@@ -183,6 +183,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:#eef3f2;color:var(--text);
 
 .fld{display:flex;flex-direction:column;gap:5px}
 .cloud-sync-status{font-size:11px;color:var(--text2);margin-top:5px;line-height:1.5;overflow-wrap:anywhere}
+.invoice-date-dialog{position:fixed;inset:0;margin:auto;width:calc(100% - 32px);max-width:400px;height:fit-content;border:1px solid var(--gray3);border-radius:8px;padding:20px;color:var(--text);font-family:inherit;max-height:calc(100dvh - 32px);overflow:auto}
+.invoice-date-dialog::backdrop{background:rgba(0,0,0,.4)}
+.invoice-date-dialog h2{font-size:18px;margin:0 0 16px}
+.invoice-date-summary{display:grid;grid-template-columns:62px minmax(0,1fr);gap:6px 10px;margin:0 0 16px;font-size:13px}
+.invoice-date-summary dt{color:var(--text2)}
+.invoice-date-summary dd{margin:0;overflow-wrap:anywhere}
+.invoice-date-warning{font-size:12px;color:var(--orange);line-height:1.6;margin-top:10px}
+.invoice-date-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.invoice-date-actions button{min-height:44px;padding:8px 16px}
 .lbl{font-size:11px;font-weight:600;color:var(--text2)}
 select{
   width:100%;padding:9px 12px;font-size:14px;font-family:inherit;
@@ -1150,6 +1159,15 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 
 <div class="toast" id="toast"></div>
 
+<dialog class="invoice-date-dialog" id="invoiceDateDialog" aria-labelledby="invoiceDateTitle">
+  <form id="invoiceDateForm" method="dialog" novalidate>
+    <h2 id="invoiceDateTitle">세금계산서 발행</h2>
+    <dl class="invoice-date-summary"><dt>거래처</dt><dd id="invoiceDateCustomer"></dd><dt>합계금액</dt><dd id="invoiceDateAmount"></dd></dl>
+    <div class="fld"><label class="lbl" for="iInvoiceDate">발행일자</label><input type="date" class="ipt" id="iInvoiceDate"></div>
+    <p class="invoice-date-warning" id="invoiceDateWarning" hidden>주의: 전월 또는 이전 월 세금계산서를 이번 달 10일 이후에 발급하면 가산세가 부과될 수 있습니다. 발행일자를 다시 확인해주세요.</p>
+    <div class="invoice-date-actions"><button type="button" class="tbtn" id="btnInvoiceDateCancel">취소</button><button type="submit" class="tbtn primary" id="btnInvoiceDateSubmit">발행하기</button></div>
+  </form>
+</dialog>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script>
 var P={"200":{"200":{"300":19700}},"300":{"300":{"600":30400,"900":30400}},"400":{"300":{"900":32900,"1200":37100,"1500":41400,"1800":45600,"2100":49900},"400":{"900":38700,"1200":42900,"1500":47200,"1800":51400,"2100":55700}},"500":{"300":{"900":36700,"1200":40900,"1500":45100,"1800":49400,"2100":53600},"400":{"900":40400,"1200":44700,"1500":48900,"1800":53200,"2100":57400},"500":{"900":44700,"1200":48900,"1500":53200,"1800":57400,"2100":61700}},"600":{"300":{"900":38900,"1200":43100,"1500":47300,"1800":51600,"2100":55800},"400":{"900":42600,"1200":46900,"1500":51100,"1800":55400,"2100":59600},"500":{"900":48400,"1200":52700,"1500":56900,"1800":61200,"2100":65400},"600":{"900":50200,"1200":54400,"1500":58700,"1800":62900,"2100":67100}},"700":{"300":{"900":42600,"1200":46900,"1500":51100,"1800":55400,"2100":59600},"400":{"900":47700,"1200":51900,"1500":56100,"1800":60400,"2100":64600},"500":{"900":54100,"1200":58400,"1500":62600,"1800":66800,"2100":71100},"600":{"900":56000,"1200":60200,"1500":64500,"1800":68700,"2100":73000},"700":{"900":58500,"1200":62800,"1500":67000,"1800":71200,"2100":75500}},"800":{"300":{"900":44500,"1200":48800,"1500":53000,"1800":57200,"2100":61500},"400":{"900":49400,"1200":53600,"1500":57900,"1800":62100,"2100":66400},"500":{"900":56000,"1200":60200,"1500":64500,"1800":68700,"2100":73000},"600":{"900":58500,"1200":62800,"1500":67000,"1800":71200,"2100":75500},"700":{"900":60400,"1200":64600,"1500":68900,"1800":73100,"2100":77400},"800":{"900":66800,"1200":71100,"1500":75300,"1800":79600,"2100":83800}},"900":{"300":{"900":47500,"1200":51700,"1500":56000,"1800":60200,"2100":64500},"400":{"900":52100,"1200":56300,"1500":60600,"1800":64800,"2100":69000},"500":{"900":60100,"1200":64300,"1500":68600,"1800":72800,"2100":77000},"600":{"900":62300,"1200":66500,"1500":70800,"1800":75000,"2100":79200},"700":{"900":64200,"1200":68400,"1500":72600,"1800":76900,"2100":81100},"800":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"900":{"900":76400,"1200":80700,"1500":84900,"1800":89100,"2100":93400}},"1000":{"300":{"900":50500,"1200":54700,"1500":59000,"1800":63200,"2100":67500},"400":{"900":55400,"1200":59600,"1500":63900,"1800":68100,"2100":72300},"500":{"900":63900,"1200":68100,"1500":72300,"1800":76600,"2100":80800},"600":{"900":66000,"1200":70300,"1500":74500,"1800":78800,"2100":83000},"700":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"800":{"900":75900,"1200":80200,"1500":84400,"1800":88700,"2100":92900},"900":{"900":81300,"1200":85500,"1500":89800,"1800":94000,"2100":98300}},"1100":{"300":{"900":54600,"1200":58800,"1500":63100,"1800":67300,"2100":71500},"400":{"900":60400,"1200":64600,"1500":68900,"1800":73100,"2100":77400},"500":{"900":69700,"1200":73900,"1500":78100,"1800":82400,"2100":86600},"600":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"700":{"900":73600,"1200":77800,"1500":82100,"1800":86300,"2100":90600},"800":{"900":82900,"1200":87100,"1500":91300,"1800":95600,"2100":99800},"900":{"900":88700,"1200":92900,"1500":97200,"1800":101400,"2100":105600}},"1200":{"300":{"900":56500,"1200":60700,"1500":65000,"1800":69200,"2100":73400},"400":{"900":62100,"1200":66400,"1500":70600,"1800":74800,"2100":79100},"500":{"900":71900,"1200":76100,"1500":80300,"1800":84600,"2100":88800},"600":{"900":73600,"1200":77800,"1500":82100,"1800":86300,"2100":90600},"700":{"900":75500,"1200":79700,"1500":84000,"1800":88200,"2100":92400},"800":{"900":85100,"1200":89300,"1500":93500,"1800":97800,"2100":102000},"900":{"900":90400,"1200":94600,"1500":98900,"1800":103100,"2100":107400}}};
@@ -2736,6 +2754,60 @@ document.getElementById('iCustomer').addEventListener('change', function(){
   document.getElementById(id).addEventListener('change', saveCurrentCustomerProfile);
 });
 
+function invoiceTodayISO(now){
+  return (now||new Date()).toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'});
+}
+function selectedInvoiceDate(){
+  var value=document.getElementById('iInvoiceDate').value||invoiceTodayISO();
+  var parsed=new Date(value+'T00:00:00Z');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==value) throw new Error('올바른 발행일자를 선택해주세요.');
+  if(value>invoiceTodayISO()) throw new Error('발행일자는 오늘 또는 이전 날짜를 선택해주세요.');
+  return value;
+}
+function checkInvoiceDateWarning(selectedDate,now){
+  var today=invoiceTodayISO(now);
+  return /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)&&selectedDate.slice(0,7)<today.slice(0,7)&&Number(today.slice(8))>9;
+}
+var invoiceDateResolve=null,invoiceDateAlerted='',taxInvoiceBusy=false;
+function warnInvoiceDate(value){
+  var warning=checkInvoiceDateWarning(value);
+  document.getElementById('invoiceDateWarning').hidden=!warning;
+  if(warning&&invoiceDateAlerted!==value){
+    invoiceDateAlerted=value;
+    alert('주의: 전월 또는 이전 월 세금계산서를 이번 달 10일 이후에 발급하면 가산세가 부과될 수 있습니다.\n발행일자를 다시 확인해주세요.');
+  }
+  if(!warning) invoiceDateAlerted='';
+}
+function selectInvoiceDate(payload){
+  return new Promise(function(resolve){
+    var dialog=document.getElementById('invoiceDateDialog');
+    var input=document.getElementById('iInvoiceDate');
+    input.value=invoiceTodayISO();input.max=invoiceTodayISO();
+    invoiceDateAlerted='';
+    document.getElementById('invoiceDateWarning').hidden=true;
+    document.getElementById('invoiceDateCustomer').textContent=payload.supplied.organizationName;
+    document.getElementById('invoiceDateAmount').textContent=fmt(payload.quote.totalAmount);
+    dialog.returnValue='';
+    dialog.showModal();
+    invoiceDateResolve=resolve;
+    input.focus();
+  });
+}
+document.getElementById('iInvoiceDate').value=invoiceTodayISO();
+document.getElementById('iInvoiceDate').addEventListener('change',function(){warnInvoiceDate(this.value||invoiceTodayISO());});
+document.getElementById('btnInvoiceDateCancel').addEventListener('click',function(){document.getElementById('invoiceDateDialog').close();});
+document.getElementById('invoiceDateDialog').addEventListener('close',function(){
+  if(invoiceDateResolve){var resolve=invoiceDateResolve;invoiceDateResolve=null;resolve(this.returnValue||null);}
+});
+document.getElementById('invoiceDateForm').addEventListener('submit',function(event){
+  event.preventDefault();
+  try{
+    var value=selectedInvoiceDate();
+    warnInvoiceDate(value);
+    document.getElementById('invoiceDateDialog').close(value);
+  }catch(error){showToast(error.message,'error');document.getElementById('iInvoiceDate').focus();}
+});
+
 function buildTaxInvoicePayload(sourceQuote){
   var sourceItems = sourceQuote ? (sourceQuote.items || []) : items;
   var sourceOptions = sourceQuote ? (sourceQuote.optionItems || []) : optionItems;
@@ -2764,7 +2836,7 @@ function buildTaxInvoicePayload(sourceQuote){
   }
   var supplyCost = Math.round(finalTotal / 1.1);
   var tax = finalTotal - supplyCost;
-  var today = new Date().toISOString().slice(0, 10);
+  var issueDate = selectedInvoiceDate();
   var itemName = sourceItems.length === 1 && sourceOptions.length === 0
     ? '앵글선반 W' + sourceItems[0].w + ' D' + sourceItems[0].d + ' H' + sourceItems[0].h + ' ' + sourceItems[0].tier + '단'
     : sourceItems.length === 0 && sourceOptions.length === 1
@@ -2776,7 +2848,7 @@ function buildTaxInvoicePayload(sourceQuote){
   var businessTypeText = [profile.businessType, profile.businessCategory].filter(Boolean).join(' / ');
 
   return {
-    date: today,
+    date: issueDate,
     purpose: 'RECEIPT',
     taxType: 'TAXABLE',
     supplied: {
@@ -2789,7 +2861,7 @@ function buildTaxInvoicePayload(sourceQuote){
     },
     items: [
       {
-        date: today,
+        date: issueDate,
         name: itemName,
         unitPrice: supplyCost,
         quantity: 1,
@@ -2953,7 +3025,8 @@ function sendQuoteOrder(button, quoteId){
     button.innerHTML = original;
   });
 }
-function issueTaxInvoice(button, quoteId){
+async function issueTaxInvoice(button, quoteId){
+  if(taxInvoiceBusy) return;
   var original = button.innerHTML;
   var payload;
   var sourceQuote = quoteId ? getStoredQuote(quoteId) : null;
@@ -2962,46 +3035,45 @@ function issueTaxInvoice(button, quoteId){
     return;
   }
   try {
+    document.getElementById('iInvoiceDate').value=invoiceTodayISO();
     payload = buildTaxInvoicePayload(sourceQuote);
   } catch(err) {
     showToast(err.message || '세금계산서 발행 준비에 실패했습니다', 'error');
     return;
   }
 
-  var confirmMsg = (sourceQuote ? sourceQuote.customer + ' 견적서의 ' : '') + '세금계산서를 볼타 API로 발행할까요?\n테스트 키에서는 실제 국세청 전송 없이 검증됩니다.';
-  if(!confirm(confirmMsg)) return;
-
-  button.disabled = true;
-  button.innerHTML = '발행 중...';
-  fetch(TAX_PROXY_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  }).then(function(res){
-    return res.json().catch(function(){ return {}; }).then(function(data){
-      if(!res.ok){
-        var message = data.message || data.error || '세금계산서 발행에 실패했습니다';
-        throw new Error(message);
-      }
-      return data;
+  taxInvoiceBusy=true;
+  try{
+    var issueDate=await selectInvoiceDate(payload);
+    if(issueDate===null) return;
+    payload.date=issueDate;
+    payload.items.forEach(function(item){item.date=issueDate;});
+    button.disabled=true;
+    button.innerHTML='발행 중...';
+    var res=await fetch(TAX_PROXY_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
     });
-  }).then(function(data){
-    var key = data.issuanceKey || data.issueId || data.id || '';
-    var historyQuoteId = quoteId || currentQuoteId;
+    var data=await res.json().catch(function(){return {};});
+    if(!res.ok) throw new Error(data.message||data.error||'세금계산서 발행에 실패했습니다');
+    var key=data.issuanceKey||data.issueId||data.id||'';
+    var historyQuoteId=quoteId||currentQuoteId;
     if(historyQuoteId) markTaxInvoiceIssued(historyQuoteId, data);
     showToast('세금계산서 발행 완료' + (key ? ': ' + key : ''), 'success');
     alert('세금계산서 발행 완료\n' + (key ? '발행번호: ' + key : '볼타 대시보드에서 결과를 확인하세요.'));
-  }).catch(function(err){
-    var msg = err && err.message ? err.message : '알 수 없는 오류';
+  }catch(err){
+    var msg=err&&err.message?err.message:'알 수 없는 오류';
     if(String(msg).indexOf('Failed to fetch') >= 0 || String(msg).indexOf('NetworkError') >= 0){
       msg = '중계서버가 실행되지 않았습니다. PC에서 서버를 먼저 실행해주세요.';
     }
     showToast(msg, 'error');
     alert('세금계산서 발행 실패\n' + msg);
-  }).finally(function(){
+  }finally{
+    taxInvoiceBusy=false;
     button.disabled = false;
     button.innerHTML = original;
-  });
+  }
 }
 
 document.getElementById('btnTaxInvoice').addEventListener('click', function(){
@@ -3562,6 +3634,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=62-trade-statement',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=63-invoice-date',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
 </body>
 </html>
