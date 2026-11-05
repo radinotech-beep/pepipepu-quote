@@ -1159,6 +1159,14 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 
 <div class="toast" id="toast"></div>
 
+<dialog class="invoice-date-dialog" id="statementDateDialog" aria-labelledby="statementDateTitle">
+  <form id="statementDateForm" method="dialog" novalidate>
+    <h2 id="statementDateTitle">거래명세표 출력</h2>
+    <dl class="invoice-date-summary"><dt>거래처</dt><dd id="statementDateCustomer"></dd><dt>합계금액</dt><dd id="statementDateAmount"></dd></dl>
+    <div class="fld"><label class="lbl" for="iStatementDate">거래명세표 일자</label><input type="date" class="ipt" id="iStatementDate"></div>
+    <div class="invoice-date-actions"><button type="button" class="tbtn" id="btnStatementDateCancel">취소</button><button type="submit" class="tbtn primary" id="btnStatementDatePrint">출력</button></div>
+  </form>
+</dialog>
 <dialog class="invoice-date-dialog" id="invoiceDateDialog" aria-labelledby="invoiceDateTitle">
   <form id="invoiceDateForm" method="dialog" novalidate>
     <h2 id="invoiceDateTitle">세금계산서 발행</h2>
@@ -2199,7 +2207,7 @@ function collectTradeStatementData(){
   var subtotal=calcSub(),total=subtotal-discount,supply=sup(total);
   return {customer:customer,supplier:QUOTE_SUPPLIER,rows:rows,
     quoteNo:saved&&saved.quoteNo||currentQuoteId||'DRAFT-'+Date.now(),
-    date:document.getElementById('iDate').value||new Date().toLocaleDateString('sv-SE'),
+    date:document.getElementById('iDate').value||invoiceTodayISO(),
     useGroups:useGroups,groups:JSON.parse(JSON.stringify(groups)),
     subtotal:subtotal,discount:discount,supply:supply,tax:total-supply,total:total,
     supplyAdjustment:supply-rows.reduce(function(sum,row){return sum+row.amount;},0)};
@@ -2262,11 +2270,43 @@ function buildTradeStatementHtml(data){
     '<div class="grand"><span>합계금액</span><span>'+number(data.total)+'원</span></div></section></main></body></html>';
 }
 
+var pendingTradeStatement=null;
 function printTradeStatement(){
+  var dialog=document.getElementById('statementDateDialog');
+  if(document.getElementById('btnPrintStatement').disabled||dialog.open) return;
+  try{
+    var data=collectTradeStatementData();
+    pendingTradeStatement=data;
+    document.getElementById('iStatementDate').value=data.date;
+    document.getElementById('statementDateCustomer').textContent=data.customer.companyName;
+    document.getElementById('statementDateAmount').textContent=fmt(data.total);
+    dialog.returnValue='';
+    dialog.showModal();
+    document.getElementById('iStatementDate').focus();
+  }catch(error){pendingTradeStatement=null;showToast(error.message,'error');}
+}
+document.getElementById('btnStatementDateCancel').addEventListener('click',function(){document.getElementById('statementDateDialog').close();});
+document.getElementById('statementDateDialog').addEventListener('close',function(){if(!this.open) pendingTradeStatement=null;});
+document.getElementById('statementDateForm').addEventListener('submit',function(event){
+  event.preventDefault();
+  if(!pendingTradeStatement) return;
+  var value=document.getElementById('iStatementDate').value||pendingTradeStatement.date;
+  var parsed=new Date(value+'T00:00:00Z');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||isNaN(parsed.getTime())||parsed.toISOString().slice(0,10)!==value){
+    showToast('올바른 거래명세표 일자를 선택해주세요.','error');
+    document.getElementById('iStatementDate').focus();
+    return;
+  }
+  var data=Object.assign({},pendingTradeStatement,{date:value});
+  pendingTradeStatement=null;
+  document.getElementById('statementDateDialog').close();
+  // Keep window.open inside the user's submit event for mobile popup policies.
+  openTradeStatementPrint(data);
+});
+
+function openTradeStatementPrint(data){
   var btn=document.getElementById('btnPrintStatement');
   if(btn.disabled) return;
-  var data;
-  try{data=collectTradeStatementData();}catch(error){showToast(error.message,'error');return;}
   var printWindow,documentUrl,closeWatcher,loadTimeout,finished=false,printing=false;
   function finish(){
     if(finished) return;
@@ -3634,6 +3674,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=63-invoice-date',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=64-statement-date',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
 </body>
 </html>
