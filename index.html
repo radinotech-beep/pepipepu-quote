@@ -742,8 +742,8 @@ input.qty-num[type=number]{-moz-appearance:textfield}
 #quoteDoc .qco{
   width:auto!important;
   min-width:0!important;
-  min-height:76px!important;
-  padding:7px 78px 7px 9px!important;
+  min-height:66px!important;
+  padding:7px 64px 7px 9px!important;
   font-size:8.7px!important;
   line-height:1.45!important;
   border-radius:7px!important;
@@ -756,8 +756,8 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   right:7px;
   top:50%;
   transform:translateY(-50%);
-  width:64px;
-  height:64px;
+  width:52px;
+  height:52px;
   border-radius:50%;
   overflow:hidden;
   opacity:.88;
@@ -804,8 +804,8 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   #quoteDoc .qmeta{grid-template-columns:minmax(0,1fr) minmax(120px,160px)!important}
   #quoteDoc .qtitle{font-size:20px!important;letter-spacing:3px!important}
   #quoteDoc .qtb .tv{font-size:18px!important}
-  #quoteDoc .qco{min-height:70px!important;padding-right:69px!important}
-  #quoteDoc .quote-stamp{right:6px;width:58px;height:58px}
+  #quoteDoc .qco{min-height:64px!important;padding-right:60px!important}
+  #quoteDoc .quote-stamp{right:6px;width:48px;height:48px}
 }
 </style>
 </head>
@@ -1992,7 +1992,7 @@ function renderQuoteCanvas(target) {
           '#quoteDoc .qh{padding:14px 16px 13px!important;}',
           '#quoteDoc .qh-top{display:grid!important;grid-template-columns:minmax(92px,.82fr) minmax(0,1.58fr)!important;gap:10px!important;align-items:start!important;margin-bottom:8px!important;}',
           '#quoteDoc .qtitle{font-size:22px!important;letter-spacing:4px!important;line-height:1.15!important;}',
-          '#quoteDoc .qco{width:auto!important;min-width:0!important;min-height:76px!important;padding:7px 78px 7px 9px!important;font-size:8.7px!important;line-height:1.45!important;border-radius:7px!important;position:relative!important;}',
+          '#quoteDoc .qco{width:auto!important;min-width:0!important;min-height:66px!important;padding:7px 64px 7px 9px!important;font-size:8.7px!important;line-height:1.45!important;border-radius:7px!important;position:relative!important;}',
           '#quoteDoc .qco div{gap:7px!important;}',
           '#quoteDoc .qco strong{min-width:48px!important;}',
           '#quoteDoc .qmeta{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(145px,215px)!important;align-items:center!important;gap:10px!important;padding-top:8px!important;}',
@@ -3201,6 +3201,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=56-manual-zipcode-search',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=57-quote-stamp',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
 </body>
 </html>
