@@ -262,9 +262,18 @@ app.post('/issue-tax-invoice', async (req, res) => {
     catch (_) { data = { raw: text }; }
 
     if (!response.ok) {
+      const traceId = String(data.traceId || response.headers.get('x-request-id') || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 160);
+      const boltaCode = String(data.code || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 100);
+      console.error(JSON.stringify({ severity: 'ERROR', event: 'bolta_issue_error', boltaStatus: response.status, boltaCode, traceId, clientReferenceId: referenceId }));
+      const uncertain = response.status >= 500;
+      const message = typeof data.message === 'string' ? data.message : '볼타 요청 오류';
       return res.status(response.status).json({
-        message: data.message || data.error || 'Bolta API request failed',
+        message: message + (uncertain ? '\n발행 결과 확인이 필요합니다. 바로 재발행하지 마세요.' : '') + '\n요청번호: ' + referenceId + (traceId ? '\n볼타 추적번호: ' + traceId : ''),
         boltaStatus: response.status,
+        boltaCode,
+        traceId,
+        clientReferenceId: referenceId,
+        outcomeUnknown: uncertain,
         boltaResponse: data
       });
     }
