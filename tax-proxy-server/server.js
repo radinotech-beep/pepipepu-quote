@@ -95,6 +95,18 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, service: 'pepipepu-bolta-tax-proxy' });
 });
 
+app.get('/tax-invoice-preview-info', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const key = requiredEnv('BOLTA_API_KEY');
+    const mode = key.startsWith('live_') ? 'live' : key.startsWith('test_') ? 'test' : '';
+    if (!mode) throw new Error('볼타 발행 모드를 확인할 수 없습니다.');
+    res.json({ mode, supplier: supplierFromEnv() });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 function extractJsonObject(text) {
   const raw = String(text || '').trim();
   try { return JSON.parse(raw); } catch (_) {}

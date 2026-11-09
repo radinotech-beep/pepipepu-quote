@@ -192,6 +192,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:#eef3f2;color:var(--text);
 .invoice-date-warning{font-size:12px;color:var(--orange);line-height:1.6;margin-top:10px}
 .invoice-date-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 .invoice-date-actions button{min-height:44px;padding:8px 16px}
+.invoice-preview-dialog{max-width:680px}
+.invoice-preview-dialog h3{font-size:14px;margin:18px 0 10px;border-bottom:1px solid var(--gray3);padding-bottom:8px}
+.invoice-preview-dialog .invoice-date-summary{grid-template-columns:82px minmax(0,1fr);line-height:1.6}
+.invoice-preview-mode{font-size:14px;font-weight:700;color:#b42318;margin:0 0 16px}
+.invoice-preview-dialog .invoice-date-actions{flex-wrap:wrap}
+.invoice-preview-dialog .invoice-date-actions button{flex:1;min-width:120px}
 .lbl{font-size:11px;font-weight:600;color:var(--text2)}
 select{
   width:100%;padding:9px 12px;font-size:14px;font-family:inherit;
@@ -405,6 +411,7 @@ select option{color:var(--text)}
 .nav-tab{flex:1;padding:13px 8px;font-size:13px;font-weight:500;color:var(--g4);cursor:pointer;border-bottom:2.5px solid transparent;transition:all .15s;text-align:center;display:flex;align-items:center;justify-content:center;gap:5px}
 .nav-tab.on{color:var(--mint);border-bottom-color:var(--mint);font-weight:700}
 .nav-tab svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+.app-version{align-self:center;flex:none;margin:0 12px 0 4px;font-size:12px;color:var(--text2);white-space:nowrap;letter-spacing:0}
 .tab-panel{display:none}.tab-panel.on{display:block}
 
 /* ── 라이브러리 ── */
@@ -864,6 +871,7 @@ input.qty-num[type=number]{-moz-appearance:textfield}
   <div class="nav-tab" id="tabLib" onclick="switchTab('lib')">
     <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>견적 라이브러리<span class="badge" id="libBadge" style="display:none">0</span>
   </div>
+  <span class="app-version" id="appVersion" title="프로그램 버전 · 2026-11-09">v68</span>
 </div>
 
 <div class="tab-panel on" id="panelNew">
@@ -1181,7 +1189,15 @@ input.qty-num[type=number]{-moz-appearance:textfield}
     <dl class="invoice-date-summary"><dt>거래처</dt><dd id="invoiceDateCustomer"></dd><dt>합계금액</dt><dd id="invoiceDateAmount"></dd></dl>
     <div class="fld"><label class="lbl" for="iInvoiceDate">발행일자</label><input type="date" class="ipt" id="iInvoiceDate"></div>
     <p class="invoice-date-warning" id="invoiceDateWarning" hidden>주의: 전월 또는 이전 월 세금계산서를 이번 달 10일 이후에 발급하면 가산세가 부과될 수 있습니다. 발행일자를 다시 확인해주세요.</p>
-    <div class="invoice-date-actions"><button type="button" class="tbtn" id="btnInvoiceDateCancel">취소</button><button type="submit" class="tbtn primary" id="btnInvoiceDateSubmit">발행하기</button></div>
+    <div class="invoice-date-actions"><button type="button" class="tbtn" id="btnInvoiceDateCancel">취소</button><button type="submit" class="tbtn primary" id="btnInvoiceDateSubmit">미리보기</button></div>
+  </form>
+</dialog>
+<dialog class="invoice-date-dialog invoice-preview-dialog" id="invoicePreviewDialog" aria-labelledby="invoicePreviewTitle">
+  <form id="invoicePreviewForm" method="dialog">
+    <h2 id="invoicePreviewTitle">세금계산서 발행 미리보기</h2>
+    <p class="invoice-preview-mode" id="invoicePreviewMode"></p>
+    <div id="invoicePreviewContent"></div>
+    <div class="invoice-date-actions"><button type="button" class="tbtn" id="btnInvoicePreviewBack">돌아가서 수정</button><button type="submit" class="tbtn primary" id="btnInvoicePreviewIssue">실제 발행</button></div>
   </form>
 </dialog>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -2866,6 +2882,49 @@ document.getElementById('invoiceDateForm').addEventListener('submit',function(ev
   }catch(error){showToast(error.message,'error');document.getElementById('iInvoiceDate').focus();}
 });
 
+var invoicePreviewResolve=null;
+function invoicePreviewFields(fields){
+  return '<dl class="invoice-date-summary">'+fields.map(function(field){
+    return '<dt>'+escapeHtml(field[0])+'</dt><dd>'+escapeHtml(String(field[1]||'미입력'))+'</dd>';
+  }).join('')+'</dl>';
+}
+async function previewTaxInvoice(payload){
+  var res=await fetch(TAX_PROXY_URL.replace(/\/issue-tax-invoice$/, '/tax-invoice-preview-info'),{cache:'no-store'});
+  var info=await res.json().catch(function(){return {};});
+  if(!res.ok) throw new Error(info.message||'발행 서버 정보를 불러오지 못했습니다.');
+  if(!info.supplier||!['live','test'].includes(info.mode)) throw new Error('발행 모드를 확인할 수 없습니다.');
+  var supplier=info.supplier,customer=payload.supplied;
+  var live=info.mode==='live';
+  document.getElementById('invoicePreviewMode').textContent=live?'실제 발행 · LIVE':'테스트 발행 · 국세청 실제 발행 아님';
+  document.getElementById('btnInvoicePreviewIssue').textContent=live?'실제 발행':'테스트 발행';
+  function partyFields(party,manager){
+    return invoicePreviewFields([['상호',party.organizationName],['사업자번호',party.identificationNumber],
+      ['대표자',party.representativeName],['주소',party.address],['업태',party.businessType],
+      ['종목',party.businessItem],['이메일',manager&&manager.email]]);
+  }
+  var supply=payload.items.reduce(function(sum,item){return sum+item.supplyCost;},0);
+  var tax=payload.items.reduce(function(sum,item){return sum+item.tax;},0);
+  document.getElementById('invoicePreviewContent').innerHTML='<h3>공급자</h3>'+partyFields(supplier,supplier.manager)+
+    '<h3>공급받는자</h3>'+partyFields(customer,(customer.managers||[])[0])+
+    '<h3>발행 내용</h3>'+invoicePreviewFields([['작성일자',payload.date],['품목',payload.items.map(function(item){return item.name;}).join(', ')],
+      ['공급가액',fmt(supply)],['세액',fmt(tax)],['합계금액',fmt(supply+tax)]]);
+  var approved=await new Promise(function(resolve){
+    invoicePreviewResolve=resolve;
+    var dialog=document.getElementById('invoicePreviewDialog');
+    dialog.returnValue='';dialog.showModal();
+    document.getElementById('btnInvoicePreviewBack').focus();
+  });
+  if(!approved) return false;
+  return confirm((live?'실제 세금계산서를 발행하시겠습니까?':'테스트 세금계산서를 발행하시겠습니까?')+
+    '\n거래처: '+customer.organizationName+'\n작성일자: '+payload.date+'\n합계금액: '+fmt(supply+tax)+
+    (live?'\n확인하면 실제 발행 요청이 전송됩니다.':''));
+}
+document.getElementById('btnInvoicePreviewBack').addEventListener('click',function(){document.getElementById('invoicePreviewDialog').close('back');});
+document.getElementById('invoicePreviewForm').addEventListener('submit',function(event){event.preventDefault();document.getElementById('invoicePreviewDialog').close('issue');});
+document.getElementById('invoicePreviewDialog').addEventListener('close',function(){
+  if(invoicePreviewResolve){var resolve=invoicePreviewResolve;invoicePreviewResolve=null;resolve(this.returnValue==='issue');}
+});
+
 function taxInvoiceItemSummary(sourceItems, sourceOptions, sourceUseGroups, sourceGroups){
   var rows=sourceItems.map(function(item){return {name:'앵글선반',groupId:item.groupId||''};})
     .concat(sourceOptions.map(function(option){return {name:String(option.name||'옵션 품목').trim()||'옵션 품목',groupId:option.groupId||''};}));
@@ -3120,6 +3179,9 @@ async function issueTaxInvoice(button, quoteId){
     if(issueDate===null) return;
     payload.date=issueDate;
     payload.items.forEach(function(item){item.date=issueDate;});
+    button.disabled=true;
+    button.innerHTML='미리보기 준비 중...';
+    if(!await previewTaxInvoice(payload)) return;
     button.disabled=true;
     button.innerHTML='발행 중...';
     var res=await fetch(TAX_PROXY_URL, {
@@ -3709,6 +3771,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=67-invoice-item-summary',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=68-invoice-preview',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
 </body>
 </html>
