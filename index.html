@@ -2866,6 +2866,22 @@ document.getElementById('invoiceDateForm').addEventListener('submit',function(ev
   }catch(error){showToast(error.message,'error');document.getElementById('iInvoiceDate').focus();}
 });
 
+function taxInvoiceItemSummary(sourceItems, sourceOptions, sourceUseGroups, sourceGroups){
+  var rows=sourceItems.map(function(item){return {name:'앵글선반',groupId:item.groupId||''};})
+    .concat(sourceOptions.map(function(option){return {name:String(option.name||'옵션 품목').trim()||'옵션 품목',groupId:option.groupId||''};}));
+  if(!rows.length) return '';
+  var first=rows[0];
+  if(sourceUseGroups){
+    (sourceGroups||[]).some(function(group){
+      var match=rows.find(function(row){return row.groupId===group.id;});
+      if(!match) return false;
+      first=match;
+      return true;
+    });
+  }
+  return first.name+(rows.length>1?' 외 '+(rows.length-1)+'건':'');
+}
+
 function buildTaxInvoicePayload(sourceQuote){
   var sourceItems = sourceQuote ? (sourceQuote.items || []) : items;
   var sourceOptions = sourceQuote ? (sourceQuote.optionItems || []) : optionItems;
@@ -2895,11 +2911,9 @@ function buildTaxInvoicePayload(sourceQuote){
   var supplyCost = Math.round(finalTotal / 1.1);
   var tax = finalTotal - supplyCost;
   var issueDate = selectedInvoiceDate();
-  var itemName = sourceItems.length === 1 && sourceOptions.length === 0
-    ? '앵글선반 W' + sourceItems[0].w + ' D' + sourceItems[0].d + ' H' + sourceItems[0].h + ' ' + sourceItems[0].tier + '단'
-    : sourceItems.length === 0 && sourceOptions.length === 1
-      ? String(sourceOptions[0].name || '옵션 품목')
-    : '앵글선반 외 ' + (sourceItems.length + sourceOptions.length) + '건';
+  var itemName = taxInvoiceItemSummary(sourceItems, sourceOptions,
+    sourceQuote ? !!sourceQuote.useGroups : useGroups,
+    sourceQuote ? (sourceQuote.groups || []) : groups);
 
   var manager = {};
   if(email) manager.email = email;
@@ -3695,6 +3709,6 @@ animate();
   window.addEventListener('resize',function(){draw(lastItems);});
   setTimeout(function(){draw(window.items||[]);},0);
 })();
-</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=66-quote-totals',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
+</script><script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js?v=67-invoice-item-summary',{updateViaCache:'none'}).then(function(registration){return registration.update();}).catch(function(error){console.warn('Service worker update failed:',error);});});}</script>
 </body>
 </html>

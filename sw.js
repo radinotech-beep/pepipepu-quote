@@ -1,4 +1,4 @@
-const CACHE = 'pepipepu-v66-quote-totals';
+const CACHE = 'pepipepu-v67-invoice-item-summary';
 const FILES = ['./index.html', './stamp.png?v=60-supplied-stamp'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));

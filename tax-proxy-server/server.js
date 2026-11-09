@@ -63,11 +63,22 @@ function supplierFromEnv() {
     identificationNumber: (process.env.SUPPLIER_IDENTIFICATION_NUMBER || '').replace(/[^0-9]/g, ''),
     organizationName: process.env.SUPPLIER_ORGANIZATION_NAME || '(주) 페피페푸',
     representativeName: process.env.SUPPLIER_REPRESENTATIVE_NAME || '김수진',
+    address: requiredSupplierField('SUPPLIER_ADDRESS', '주소'),
+    businessType: requiredSupplierField('SUPPLIER_BUSINESS_TYPE', '업태'),
+    businessItem: requiredSupplierField('SUPPLIER_BUSINESS_ITEM', '종목'),
     manager: {
       email: process.env.SUPPLIER_MANAGER_EMAIL || 'pepipepu2020@gmail.com',
       telephone: process.env.SUPPLIER_TELEPHONE || '010-5395-4977'
     }
   };
+}
+
+function requiredSupplierField(name, label) {
+  const value = String(process.env[name] || '').trim();
+  if (!value || value.includes('YOUR_') || value.includes('_HERE')) {
+    throw new Error(`공급자 ${label}가 설정되지 않았습니다. 서버의 ${name} 설정을 확인해주세요.`);
+  }
+  return value;
 }
 
 function validatePayload(body) {
